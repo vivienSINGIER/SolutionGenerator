@@ -1,0 +1,32 @@
+{
+    "projects": {
+        "2E7A7F63-5525-119D-1D70-06F1716D132A": {
+            "config-debug": {
+                "additionalDependencies": [],
+                "additionalIncludeDirectories": [],
+                "additionalLibraryDirectories": [],
+                "preprocessorDefinitions": []
+            },
+            "config-release": {
+                "additionalDependencies": [],
+                "additionalIncludeDirectories": [],
+                "additionalLibraryDirectories": [],
+                "preprocessorDefinitions": []
+            },
+            "dependencies": [],
+            "dependents": [],
+            "name": "SolutionGenerator",
+            "property-lib": false,
+            "property-pch": false,
+            "property-vcpkg": false,
+            "property-window": false
+        }
+    },
+    "projects_name_to_guid": {
+        "SolutionGenerator": "2E7A7F63-5525-119D-1D70-06F1716D132A"
+    },
+    "solution_guid": "33CD7C6D-1286-2980-1D30-0AFA4EFF62F4",
+    "solution_name": "SolutionGenerator",
+    "startup_project": "",
+    "version": "2.0"
+}
