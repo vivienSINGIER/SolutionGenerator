@@ -1,4 +1,4 @@
-# SolGen CLI Specification
+ # SolGen CLI Specification
 
 Command reference for `solgen`. CLI only — no GUI in v1.
 
