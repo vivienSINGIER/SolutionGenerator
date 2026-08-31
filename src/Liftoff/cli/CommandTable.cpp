@@ -7,37 +7,199 @@ namespace CommandTable
     {
         {
             CommandId::New, "", "new",
-            /*positionals*/ { 
-                {"path", CommandValueType::Path, true, "the location of the new solution"} , 
+            /*positionals*/ {
+                {"path", CommandValueType::Path, true, {}, "the location of the new solution"} ,
             },
             /*options*/{
                     { "name", '\0', CommandValueType::String, false, true, {},
                         "the name of the new solution" },
                     { "toolset", '\0', CommandValueType::String, false, false, {},
-                        "the toolset" }, // TODO Complete help
+                        "the compiler toolset (default: v143)" },
                     { "cpp-standard", '\0', CommandValueType::String, false, false, {},
-                        "the version of the cpp standard library" },
-                    { "override", '\0', CommandValueType::Flag, false, false, {},
-                        "Whether we override the previous solution manifest if it exists"}
+                        "the C++ language standard (default: 20)" },
+                    { "force", '\0', CommandValueType::Flag, false, false, {},
+                        "overwrite an existing solution.json"}
             },
-            "Creates a new solution at a chosen path"
+            "Creates a new solution at <path>"
         },
 
         {
             CommandId::ProjectAdd, "project", "add",
             /*positionals*/ {
-                 {"name", CommandValueType::String, true, "the name of the new project"} 
+                 {"name", CommandValueType::String, true, {}, "the name of the new project"}
             },
             /*options*/ {
-                { "kind", 0, CommandValueType::Enum, false, true, 
+                { "kind", '\0', CommandValueType::Enum, false, true, 
         { "console", "window", "staticlib", "dynamiclib"} , "the type of project" },
                 { "depends-on", '\0', CommandValueType::String, true, false, {},
                     "Another project this one is linked to" },
                 { "no-scaffold", '\0', CommandValueType::Flag, false, false, {}, 
                     "Write the manifest only, no folders or starter files created" }
             },
-            "Creates a new project"
+            "Creates a new project of type --kind linked to [--depend-on]"
         },
+        
+        {
+            CommandId::ProjectRemove, "project", "remove",
+            /*positionals*/{
+                {"name", CommandValueType::String, true, {}, "the name of the project"}
+            },
+            /*options*/ {
+                {
+                    "cascade", '\0', CommandValueType::Flag, false, false, {},
+                    "whether to delete the src & res file of the project" }
+            },
+            "Deletes the project"
+        },
+        
+        {
+            CommandId::ProjectList, "project", "list",{}, {},
+            "Lists projects: name, kind, dependencies."
+        },
+        
+        {
+            CommandId::ProjectSet, "project", "set",
+            /*positionals*/ {
+                {"name", CommandValueType::String, true, {}, "the name of the project"},
+                {"key", CommandValueType::String, true, {}, "the key to the targeted value"},
+                {"value", CommandValueType::String, true, {}, "the new value"}
+            }, {},
+            "Sets a scalar field in the project's manifest config file"
+        },
+        
+        {
+            CommandId::DepAdd, "dep", "add",
+            /*positionals*/ {
+                {"project", CommandValueType::String, true, {}, "the name of the project"},
+                {"dependency", CommandValueType::String, true, {}, "the name of the dependency"}
+            }, {},
+            "Adds a dependency to the project among the existing projects of the solution"
+        },
+        
+        {
+            CommandId::DepRemove, "dep", "remove",
+            /*positionals*/ {
+                {"project", CommandValueType::String, true, {}, "the name of the project"},
+                {"dependency", CommandValueType::String, true, {}, "the name of the dependency"}
+            }, {},
+            "Removes a dependency off a project"
+        },
+
+        {
+            CommandId::DepList, "dep", "list",
+            /*positionals*/ {
+                {"project", CommandValueType::String, true, {}, "the name of the project"}
+            }, {},
+            "Lists the project's current dependencies"
+        },
+        
+        {
+            CommandId::VendorAdd, "vendor", "add",
+            /*positionals*/ {
+                {"project", CommandValueType::String, true, {}, "the name of the project"},
+                {"lib", CommandValueType::String, true, {}, "the name of the library"},
+            },
+            /*options*/ {
+                { "include", '\0', CommandValueType::List, true, true, {},
+                 "the additional include directories"},
+                {"lib-dir", '\0', CommandValueType::List, true, true, {},
+                "the additional library directories"},
+                {"libs", '\0', CommandValueType::List, false, true, {},
+                "the additional .libs dependencies"},
+                {"dlls", '\0', CommandValueType::List, false, false, {},
+                "the additional .dlls dependencies"},
+            },
+            "Adds additional dependencies to the project"
+        },
+        
+        {
+            CommandId::VendorRemove, "vendor", "remove",
+            /*positionals*/ {
+                {"project", CommandValueType::String, true, {}, "the name of the project"},
+                {"lib", CommandValueType::String, true, {}, "the name of the library"}
+            }, {},
+            "Removes an additional dependency off a project"
+        },
+
+        {
+            CommandId::VendorList, "vendor", "list",
+            /*positionals*/ {
+                {"project", CommandValueType::String, true, {}, "the name of the project"}
+            }, {},
+            "Lists the project's vendor entries"
+        },
+
+        {
+            CommandId::Set, "", "set",
+            /*positionals*/ {
+                {"key", CommandValueType::String, true, {}, "the key to the targeted value"},
+                {"value", CommandValueType::String, true, {}, "the new value"}
+            }, {},
+            "Sets a scalar field in the solution's manifest config file"
+        },
+
+        {
+            CommandId::SyncBats, "", "sync-bats", {}, {},
+            "Regenerates the full .bat toolset"
+        },
+        
+        {
+            CommandId::Make, "", "make", {}, 
+            /*options*/ {
+                { "only", '\0', CommandValueType::List, false, false, {},
+                "the list of projects to make"}
+            },
+            "Make the entire solution or the chosen projects"
+        },
+        
+        {
+            CommandId::Build, "", "build",
+            /*positionals*/{
+                { "config", CommandValueType::Enum, false, { "Debug", "Release", "all" },
+                    "the build configuration (default: Debug)"}
+            },
+            /*options*/ {
+                    { "only", '\0', CommandValueType::List, false, false, {},
+                    "the list of projects to build"},
+                    { "msbuild", '\0', CommandValueType::Path, false, false, {},
+                    "explicit path to MSBuild.exe"}
+            },
+            "Builds the projects for the given config"
+        },
+        
+        {
+            CommandId::Run, "", "run",
+            /*positionals*/{
+                { "project", CommandValueType::String, false, {}, "the name of the specified project"},
+                {"config", CommandValueType::Enum, false, { "Debug", "Release" },
+                    "the run configuration (default: Debug)"},
+            },
+            /*options*/ {
+                {
+                    "detach", '\0', CommandValueType::Flag, false, false, {},
+                    "starts the app as an independent process" }
+            },
+            "Runs the default or chosen project"
+        },
+        
+        {
+            CommandId::Clean, "", "clean", {}, {},
+            "Deletes all compiler output in the /ide folder"
+        },
+        
+        {
+            CommandId::Clear, "", "clear", {}, {},
+            "Deletes the /ide folder"
+        },
+        
+        {
+            CommandId::Rebuild, "", "rebuild",
+            /*positionals*/{
+                { "config", CommandValueType::Enum, false, { "Debug", "Release", "all" },
+                    "the build configuration (default: Debug)"}
+            }, {},
+            "Rebuilds the chosen config"
+        }
     };
 
     std::string TopLevelNames()

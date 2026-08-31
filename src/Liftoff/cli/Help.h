@@ -2,7 +2,7 @@
 #define HELP_H_DEFINED
 #include <span>
 
-#include "CommandSpecs.h"
+#include "CommandSpecs.hpp"
 
 namespace  Help
 {   

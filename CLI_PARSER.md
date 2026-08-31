@@ -115,9 +115,13 @@ them identically.
 | field | type | meaning |
 |---|---|---|
 | `name` | `std::string` | key in the `ArgBag`: `"name"`, `"config"` |
-| `kind` | `ValueKind` | `Flag` is meaningless here; usually `String` / `Path` / `Enum` |
+| `type` | `CommandValueType` | `Flag` is meaningless here; usually `String` / `Path` / `Enum` |
 | `required` | `bool` | `false` → optional trailing slot (`build [config]`) |
+| `enumValues` | `std::vector<std::string>` | allowed values when `type == Enum` (mirrors `OptionSpec`) |
 | `help` | `std::string` | one line |
+
+The only enum positionals in v1 are the `config` slots of `build` / `rebuild`
+(`Debug|Release|all`) and `run` (`Debug|Release`).
 
 Positional order in the vector **is** the argument order on the command line.
 No variadic positional in v1 (every command has a fixed count — see `CLI_SPEC.md`).
@@ -142,8 +146,8 @@ enum class CommandId
     None = 0,          // no command / parser already handled everything (help, version)
     New,
     ProjectAdd, ProjectRemove, ProjectList, ProjectSet,
-    DepAdd, DepRemove,
-    VendorAdd, VendorRemove,
+    DepAdd, DepRemove, DepList,
+    VendorAdd, VendorRemove, VendorList,
     Set, SyncBats,
     Make, Build, Run, Clean, Clear, Rebuild,
 };
@@ -650,27 +654,27 @@ don't change afterward.
       store the `CommandSpec const*`, drop the consumed tokens.
       _Check:_ `solgen make` and `solgen project add` resolve; `solgen bogus`
       errors, exit 1.
-- [ ] **10. Stage [5] — `BindArgs` + `ArgReader`.** Build it up in sub-steps, each
+- [x] **10. Stage [5] — `BindArgs` + `ArgReader`.** Build it up in sub-steps, each
       verified against the `project add` / `build` specs:
-  - [ ] 10a. positionals only → `bag["name"]` from `solgen project add Engine`
-  - [ ] 10b. `Flag` options → `--no-scaffold`
-  - [ ] 10c. value options, both `--kind x` and `--kind=x`
-  - [ ] 10d. `Enum` check → `--kind statlib` adds a `details` line
-  - [ ] 10e. `repeatable` → `--depends-on A --depends-on B` → `["A","B"]`
-  - [ ] 10f. `List` → `--only A,B` comma-split → `["A","B"]`
-  - [ ] 10g. order rule → a plain token after the first `--flag` →
+  - [x] 10a. positionals only → `bag["name"]` from `solgen project add Engine`
+  - [x] 10b. `Flag` options → `--no-scaffold`
+  - [x] 10c. value options, both `--kind x` and `--kind=x`
+  - [x] 10d. `Enum` check → `--kind statlib` adds a `details` line
+  - [x] 10e. `repeatable` → `--depends-on A --depends-on B` → `["A","B"]`
+  - [x] 10f. `List` → `--only A,B` comma-split → `["A","B"]`
+  - [x] 10g. order rule → a plain token after the first `--flag` →
         `unexpected argument 'x'`
-  - [ ] 10h. error accumulation → missing required positional/option, unknown
+  - [x] 10h. error accumulation → missing required positional/option, unknown
         option, extra positional, duplicate non-repeatable — all reported at once
-- [ ] **11. Stage [6] — assemble.** `Run` returns `m_error` if it has details,
+- [x] **11. Stage [6] — assemble.** `Run` returns `m_error` if it has details,
       else fills `Invocation`. _Check:_ example 9.1 and 9.2 from this doc produce
       the stated `Invocation`; 9.3 produces the stated error + exit 1.
 
 ### Phase D — fill out
 
-- [ ] **12. Complete `CommandTable.cpp`** — all 17 commands from `CLI_SPEC.md`'s
+- [x] **12. Complete `CommandTable.cpp`** — all 17 commands from `CLI_SPEC.md`'s
       command index, every positional and option. No new logic.
-- [ ] **13. `cli/Help.{h,cpp}`** — `General()` (banner + command index from
+- [x] **13. `cli/Help.{h,cpp}`** — `General()` (banner + command index from
       `CommandTable::All`), `Group(noun)`, `Command(spec)` (usage line built from
       the spec + the global-flags list). Replace the step-7 placeholder; wire the
       `m_wantHelp` short-circuits inside stage [3] (general / group) and at

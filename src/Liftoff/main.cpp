@@ -31,7 +31,7 @@ int main(int _argc, char** _argv)
     Invocation inv;
     Error e = Cli::Parse(_argc, _argv, inv);
     
-    // Error e = Cli::Parse(2, MakeCharArray("./Liftoff.exe lele"), inv);
+    // Error e = Cli::Parse(4, MakeCharArray("./Liftoff new ../ --name"), inv);
     
     if (inv.done) 
         return e.Exit();

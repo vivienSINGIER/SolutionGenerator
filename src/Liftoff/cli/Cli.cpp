@@ -2,6 +2,7 @@
 
 #include <iostream>
 
+#include "ArgReader.h"
 #include "CommandTable.h"
 #include "Help.h"
 #include "core/Version.h"
@@ -81,6 +82,14 @@ Error Parser::Run(Invocation& _out)
     if (resErr)
         AddError(resErr.Format());
     
+    BindArgs(*cSpec);
+    
+    if (m_error.details.empty() == false)
+    {
+        m_error.code = ErrorCode::Validation;
+        m_error.message = "invalid '" + cSpec->Path() + "' invocation";
+    }
+    
     return m_error;
 }
 
@@ -142,6 +151,115 @@ Error Parser::ResolvePath(CommandSpec const*& _spec)
     return e;
 }
 
+void Parser::BindArgs(CommandSpec const& _spec)
+{
+    ArgReader reader(m_tokens);
+    
+    bool optionsSeen = false;
+    std::vector<std::string> positionalArgs;
+    while (reader.IsEnd() == false)
+    {
+        bool isOption = reader.IsNextOption();
+        std::string arg = reader.Next();
+        
+        if (isOption) optionsSeen = true;
+        
+        if (!isOption)
+        {
+            if (optionsSeen)
+                m_error.details.push_back("unexpected argument '" + arg + "'");
+            else
+                positionalArgs.push_back(arg);
+            continue;
+        }
+        
+        std::string optionName = ExtractCommandName(arg);
+        
+        if (_spec.IsOption(optionName) == false)
+        {
+            m_error.details.push_back("unknown option '" + arg + "'");
+            continue;
+        }
+        
+        OptionSpec const* opt = _spec.FindOption(optionName);
+        
+        if (opt->repeatable == false && m_argBag.Exists(optionName))
+        {
+            m_error.details.push_back(arg + " given more than once");
+        }
+        
+        if (opt->type == CommandValueType::Flag)
+        {
+            m_argBag.Add(optionName, "true");
+            continue;
+        }
+        
+        if (reader.IsNextOption() == true)
+        {
+            m_error.details.push_back(arg + " needs a value");
+            continue;
+        }
+        
+        std::string value = reader.Next();
+        
+        if (value.empty())
+        {
+            m_error.details.push_back("missing value for option " + arg);
+        }
+        
+        if (opt->type == CommandValueType::Enum)
+        {
+            if (CheckEnumValue(arg, value, opt->enumValues) == false)
+                continue;
+        }
+        
+        if (opt->type == CommandValueType::List)
+        {
+            std::stringstream ss(value);
+            std::string item;
+            char delim = ',';
+            while (std::getline(ss, item, delim))
+            {
+                m_argBag.Add(optionName, item);
+            }
+            continue;
+        }
+        
+        m_argBag.Add(optionName, value);
+    }
+    
+    for (size_t i = 0; i < _spec.positionals.size(); i++)
+    {
+        PositionalSpec const& pos = _spec.positionals[i];
+
+        if (i >= positionalArgs.size())
+        {
+            if (pos.required)
+                m_error.details.push_back("missing <" + pos.name + ">");
+            continue;
+        }
+
+        if (pos.type == CommandValueType::Enum
+            && CheckEnumValue("<" + pos.name + ">", positionalArgs[i], pos.enumValues) == false)
+            continue;
+
+        m_argBag.Add(pos.name, positionalArgs[i]);
+    }
+    
+    if (positionalArgs.size() > _spec.positionals.size())
+        for (size_t i = _spec.positionals.size(); i < positionalArgs.size(); i++)
+            m_error.details.push_back("unexpected argument '" + positionalArgs[i] + "'");
+    
+    for (OptionSpec const& opt : _spec.options)
+    {
+        if (opt.required == false)
+            continue;
+        
+        if (m_argBag.Exists(opt.name) == false)
+            m_error.details.push_back("missing required option --" + opt.name + "");
+    }
+}
+
 std::string Parser::ExtractCommandName(std::string_view _command)
 {
     std::string result;
@@ -163,6 +281,21 @@ void Parser::AddError(std::string _message)
         m_error = Error::Validation(_message);
     else
         m_error.details.push_back(_message);
+}
+
+bool Parser::CheckEnumValue(std::string_view _label, std::string const& _value,
+                            std::vector<std::string> const& _allowed)
+{
+    for (std::string const& candidate : _allowed)
+        if (_value == candidate)
+            return true;
+
+    std::string errMsg = "unknown value, " + std::string(_label) + " must be one of <";
+    for (size_t i = 0; i < _allowed.size(); i++)
+        errMsg += (i == 0 ? "" : "|") + _allowed[i];
+    errMsg += ">";
+    m_error.details.push_back(errMsg);
+    return false;
 }
 
 bool Parser::IsValue(std::string_view _command)

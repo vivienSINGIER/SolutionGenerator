@@ -5,7 +5,7 @@
 #include <span>
 #include <string_view>
 
-#include "CommandSpecs.h"
+#include "CommandSpecs.hpp"
 #include "core/Error.h"
 
 namespace CommandTable

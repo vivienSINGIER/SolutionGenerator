@@ -82,7 +82,9 @@ namespace Help
         
         for (PositionalSpec const& pos : _command.positionals)
         {
-            std::string p = "<" + pos.name + ">";
+            std::string p = pos.type == CommandValueType::Enum
+                ? ValuePlaceholder(pos.type, pos.enumValues)
+                : "<" + pos.name + ">";
             parts.push_back(pos.required ? p : "[" + p + "]");
         }
         

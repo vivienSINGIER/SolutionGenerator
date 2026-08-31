@@ -92,8 +92,10 @@ explicitly and skips the search.
 | `solgen project set` | setup | [ ] |
 | `solgen dep add` | setup | [ ] |
 | `solgen dep remove` | setup | [ ] |
+| `solgen dep list` | setup | [ ] |
 | `solgen vendor add` | setup | [ ] |
 | `solgen vendor remove` | setup | [ ] |
+| `solgen vendor list` | setup | [ ] |
 | `solgen set` | setup | [ ] |
 | `solgen sync-bats` | setup | [ ] |
 | `solgen make` | lifecycle | [ ] |
@@ -196,6 +198,15 @@ Add / remove an entry in `<project>`'s `dependencies`. `add` validates both
 projects exist and that the new edge introduces no cycle — on failure it prints
 the exact cycle. `remove` is a no-op (exit `0`) if the edge was not present.
 
+### `solgen dep list <project>`
+
+```
+solgen dep list <project>
+```
+
+Lists `<project>`'s direct dependencies, one per line. Read-only. `project list`
+already shows the whole graph; this narrows to one project.
+
 ### `solgen vendor add <project> <lib>` / `solgen vendor remove <project> <lib>`
 
 ```
@@ -206,8 +217,21 @@ solgen vendor remove <project> <lib>
 
 Add / remove a key in `<project>`'s `vendor` block. Paths are relative to
 `vendor/` and are **not** required to exist at edit time — `make` warns if a
-declared path is still missing when it runs. `--lib-dir` may be given once (used
-for all configs) or as `Debug=<path>` / `Release=<path>` pairs.
+declared path is still missing when it runs.
+
+`--include` and `--lib-dir` are **repeatable** — each occurrence appends one path.
+`--lib-dir` accepts a bare path (used for all configs) or a `Debug=<path>` /
+`Release=<path>` prefix; the prefix is a value format the `vendor add` handler
+parses, not the parser (which only collects the raw tokens).
+
+### `solgen vendor list <project>`
+
+```
+solgen vendor list <project>
+```
+
+Lists `<project>`'s `vendor` entries: lib name, then its `include` / `lib-dir` /
+`libs` / `dlls` values. Read-only.
 
 ### `solgen set <key> <value>`
 

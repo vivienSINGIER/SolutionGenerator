@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-#include "CommandSpecs.h"
+#include "CommandSpecs.hpp"
 #include "Invocation.h"
 #include "core/Error.h"
 
@@ -22,10 +22,12 @@ public:
 private:
     std::string         ExtractCommandName(std::string_view _command);
     void                AddError(std::string _message);
+    bool                CheckEnumValue(std::string_view _label, std::string const& _value,
+                                       std::vector<std::string> const& _allowed);
 
     void                ExtractGlobals();
-    Error  ResolvePath(CommandSpec const*& _spec);
-    // void                BindArgs(CommandSpec const& _spec);
+    Error               ResolvePath(CommandSpec const*& _spec);
+    void                BindArgs(CommandSpec const& _spec);
     
     bool                IsValue(std::string_view _command);
     bool                IsGlobal(std::string_view _command, GlobalId& _gIndex);

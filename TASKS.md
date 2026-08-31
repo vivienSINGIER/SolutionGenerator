@@ -19,7 +19,7 @@ Spec references: `PLAN.md` (solution model, folder tree, manifest schema),
 ## Phase 1 — Foundations
 
 - [x] IO layer: atomic write (temp file + rename), recursive delete, directory create, path helpers — harden `FileHelper.hpp`
-- [ ] CLI parser: hybrid grammar (flat verbs + grouped nouns), global flags (`-n/--dry-run`, `-y/--yes`, `-v/--verbose`, `-h/--help`, `--version`, `--config`)
+- [x] CLI parser: hybrid grammar (flat verbs + grouped nouns), global flags (`-n/--dry-run`, `-y/--yes`, `-v/--verbose`, `-h/--help`, `--version`, `--config`)
 - [ ] Command dispatch table (command path → handler function)
 - [x] Error type + exit-code mapping (`0` ok, `1` validation, `2` I/O, `3` declined, `4` build)
 - [ ] Logging with verbosity levels; `--verbose` switch
