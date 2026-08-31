@@ -14,7 +14,7 @@ Status: **design**. Object names and file split are proposals; adjust freely.
 
 **In scope** — `argv` → `Invocation`:
 
-1. Tokenize: `--flag=value` vs `--flag value`, `--` as end-of-options.
+1. Tokenize: `--flag=value` vs `--flag value`; positionals end at the first `--flag`.
 2. Resolve the command path through the hybrid grammar (flat verbs + noun groups).
 3. Separate global flags (may appear anywhere) from command-local args.
 4. Bind positionals and options to the command's declared shape.
@@ -43,14 +43,13 @@ argv
   ▼
 Parser                              owns all transient state for one run
   │
-  ├─ [0] normalize      argv .............................→ vector<string> tokens
-  ├─ [1] split "--"     tokens ...........................→ tokens + forced[]
-  ├─ [2] extract globals  tokens + GlobalFlagTable .......→ GlobalFlags + wantHelp/Version, shorter tokens
-  ├─ [3] version?        wantVersion ....................→ (print, done)
-  ├─ [4] resolve path    tokens[0..1] + CommandTable ....→ CommandSpec const*, shorter tokens
-  ├─ [5] help?           wantHelp + CommandSpec ..........→ (Help renders, done)
-  ├─ [6] bind args       tokens + forced[] + CommandSpec →  ArgBag  (+ Error.details on mistakes)
-  └─ [7] assemble        id + GlobalFlags + ArgBag .......→ Invocation
+  ├─ [0] normalize        argv ..........................→ vector<string> tokens
+  ├─ [1] extract globals  tokens + GlobalFlagTable ......→ GlobalFlags + wantHelp/Version, shorter tokens
+  ├─ [2] version?         wantVersion ...................→ (print, done)
+  ├─ [3] resolve path     tokens[0..1] + CommandTable ...→ CommandSpec const*, shorter tokens
+  ├─ [4] help?            wantHelp + CommandSpec .........→ (Help renders, done)
+  ├─ [5] bind args        tokens + CommandSpec ..........→ ArgBag  (+ Error.details on mistakes)
+  └─ [6] assemble         id + GlobalFlags + ArgBag .....→ Invocation
   ▼
 Invocation  →  Dispatch  →  Cmd::Xxx(GlobalFlags const&, ArgBag const&)
 ```
@@ -233,7 +232,7 @@ static GlobalFlagDef const kGlobals[] =
 
 ### 3.9 `ArgReader` — internal to `cli/Cli.cpp`
 
-Small cursor so stage [6] reads cleanly. No ownership, points at the `Parser`'s
+Small cursor so stage [5] reads cleanly. No ownership, points at the `Parser`'s
 token vector.
 
 ```cpp
@@ -245,7 +244,7 @@ public:
     bool               Eof()  const;
     std::string const& Peek() const;         // "" at Eof
     std::string        Next();               // advance, return current
-    bool               NextLooksLikeOption() const;  // starts with '-' and not just "-"
+    bool               NextLooksLikeOption() const;  // starts with "--"
 private:
     std::vector<std::string> const* m_tokens;
     size_t                          m_pos = 0;
@@ -308,18 +307,16 @@ public:
     Error Run(Invocation& _out);
 
 private:
-    void               SplitEndOfOptions();               // [1]
-    void               ExtractGlobals();                  // [2]
-    CommandSpec const* ResolvePath(Error& _err);          // [4]
-    void               BindArgs(CommandSpec const&);      // [6]
+    void               ExtractGlobals();                  // [1]
+    CommandSpec const* ResolvePath(Error& _err);          // [3]
+    void               BindArgs(CommandSpec const&);      // [5]
 
     std::vector<std::string> m_tokens;        // shrinks as stages consume from it
-    std::vector<std::string> m_forced;        // everything after a bare "--"
     GlobalFlags              m_global;
     bool                     m_wantHelp    = false;
     bool                     m_wantVersion = false;
     ArgBag                   m_bag;
-    Error                    m_error;         // .details accumulates across stage [6]
+    Error                    m_error;         // .details accumulates across stage [5]
 };
 ```
 
@@ -359,15 +356,7 @@ Reads the table; writes to stdout; never fails.
 - **Out:** `Parser::m_tokens`.
 - **Edge:** empty → `Help::General()`, `_out.done = true`, return `Error::Ok`.
 
-### [1] Split end-of-options — *actor: `Parser::SplitEndOfOptions`*
-
-- **In:** `m_tokens`.
-- **Does:** find the first bare `--`; move everything after it into `m_forced`;
-  drop the `--` and the tail from `m_tokens`.
-- **Out:** `m_tokens` (shorter), `m_forced`.
-- **Why:** lets `project set Foo defines -- -DBAR /DZ` pass dash-leading values.
-
-### [2] Extract globals — *actor: `Parser::ExtractGlobals`, using `GlobalFlagTable`*
+### [1] Extract globals — *actor: `Parser::ExtractGlobals`, using `GlobalFlagTable`*
 
 - **In:** `m_tokens`, `kGlobals`.
 - **Does:** walk `m_tokens`; for each token that matches a global by long or short
@@ -378,13 +367,13 @@ Reads the table; writes to stdout; never fails.
   command-local args only.
 - **Edge:** `--config` with no value → `Error::Validation("--config needs a path")`.
 
-### [3] Version short-circuit — *actor: `Parser::Run`*
+### [2] Version short-circuit — *actor: `Parser::Run`*
 
 - **In:** `m_wantVersion`.
 - **Does:** if set, print version string.
 - **Out:** `_out.done = true`, return `Error::Ok`.
 
-### [4] Resolve command path — *actor: `CommandTable::Resolve`, called by `Parser::Run`*
+### [3] Resolve command path — *actor: `CommandTable::Resolve`, called by `Parser::Run`*
 
 - **In:** `m_tokens` (front 1–2), the table.
 - **Does:**
@@ -397,16 +386,21 @@ Reads the table; writes to stdout; never fails.
   - unknown `m_tokens[0]` → `Error::Validation("unknown command 'projct'")`.
 - **Out:** `CommandSpec const*`; `m_tokens` = command-local args only.
 
-### [5] Per-command help short-circuit — *actor: `Parser::Run`*
+### [4] Per-command help short-circuit — *actor: `Parser::Run`*
 
 - **In:** `m_wantHelp`, the resolved `CommandSpec`.
 - **Does:** if set, `Help::Command(spec)`.
 - **Out:** `_out.done = true`, return `Error::Ok`.
 
-### [6] Bind args — *actor: `Parser::BindArgs`, using `ArgReader`, filling `ArgBag`*
+### [5] Bind args — *actor: `Parser::BindArgs`, using `ArgReader`, filling `ArgBag`*
 
-- **In:** `m_tokens`, `m_forced`, the `CommandSpec`.
-- **Does:** iterate tokens with `ArgReader`:
+- **In:** `m_tokens`, the `CommandSpec`.
+- **Does:** iterate tokens with `ArgReader`. Positionals come first; the first
+  token starting with `--` flips the reader into "options seen" mode.
+  - token **not** starting with `--`:
+    - options not yet seen → collect into a local `positionalArgs` vector.
+    - options already seen → `details += "unexpected argument 'x'"` (a stray
+      positional after options started).
   - `--name` / `--name=val` → look up in `spec.options`.
     - not found → `m_error.details += "unknown option --name"`, keep going.
     - `Flag` → `m_bag.Add(longName, "true")`; inline value → error.
@@ -415,17 +409,15 @@ Reads the table; writes to stdout; never fails.
     - not `repeatable` and key already present → `details += "--kind given more than once"`.
     - `Enum` and value not in `enumValues` → `details += "--kind must be one of ..."`.
     - `List` → comma-split, `Add` each; else `Add` the one value.
-  - `-x` (len 2) → match by `shortName`, same handling.
-  - anything else → collect into a local `positionalArgs` vector.
-  - Then append `m_forced` to `positionalArgs`, and bind in `spec.positionals`
-    order: required slot with nothing left → `details += "missing <name>"`;
-    leftover args → `details += "unexpected argument 'x'"`.
+  - Then bind `positionalArgs` in `spec.positionals` order: required slot with
+    nothing left → `details += "missing <name>"`; leftover args →
+    `details += "unexpected argument 'x'"`.
   - Then required-option check: each `required` option absent →
     `details += "missing required option --kind"`.
 - **Out:** `m_bag` populated. If `m_error.details` non-empty:
   `m_error.code = Validation`, `m_error.message = "invalid \`project add\` invocation"`.
 
-### [7] Assemble — *actor: `Parser::Run`*
+### [6] Assemble — *actor: `Parser::Run`*
 
 - **In:** resolved `id`, `m_global`, `m_bag`, `m_error`.
 - **Does:** if `m_error` has details → return it (`_out.id` stays `None`).
@@ -437,13 +429,12 @@ Reads the table; writes to stdout; never fails.
 | Step | Actor | Consumes | Produces |
 |---|---|---|---|
 | 0 normalize | `Cli::Parse` | `argc/argv` | `vector<string>` tokens, a `Parser` |
-| 1 split `--` | `Parser::SplitEndOfOptions` | tokens | tokens, `m_forced` |
-| 2 globals | `Parser::ExtractGlobals` + `GlobalFlagTable` | tokens | `GlobalFlags`, `wantHelp/Version`, shorter tokens |
-| 3 version | `Parser::Run` | `wantVersion` | printout, `done` |
-| 4 path | `CommandTable::Resolve` | tokens[0..1] + table | `CommandSpec const*`, shorter tokens |
-| 5 help | `Parser::Run` + `Help` | `wantHelp` + spec | printout, `done` |
-| 6 bind | `Parser::BindArgs` + `ArgReader` | tokens + forced + spec | `ArgBag` (+ `Error.details`) |
-| 7 assemble | `Parser::Run` | id + flags + bag | `Invocation` |
+| 1 globals | `Parser::ExtractGlobals` + `GlobalFlagTable` | tokens | `GlobalFlags`, `wantHelp/Version`, shorter tokens |
+| 2 version | `Parser::Run` | `wantVersion` | printout, `done` |
+| 3 path | `CommandTable::Resolve` | tokens[0..1] + table | `CommandSpec const*`, shorter tokens |
+| 4 help | `Parser::Run` + `Help` | `wantHelp` + spec | printout, `done` |
+| 5 bind | `Parser::BindArgs` + `ArgReader` | tokens + spec | `ArgBag` (+ `Error.details`) |
+| 6 assemble | `Parser::Run` | id + flags + bag | `Invocation` |
 
 ---
 
@@ -557,13 +548,12 @@ src/SolutionGenerator/cli/
 | step | result |
 |---|---|
 | 0 | `tokens = [-v, project, add, Engine, --kind, staticlib, --depends-on, Core, --depends-on, Math, -n]` |
-| 1 | no `--`; `forced = []` |
-| 2 | `global = { verbose:true, dryRun:true }`; `tokens = [project, add, Engine, --kind, staticlib, --depends-on, Core, --depends-on, Math]` |
-| 3 | not version |
-| 4 | noun `project` + sub `add` → `spec = "project add"`, consume 2; `tokens = [Engine, --kind, staticlib, --depends-on, Core, --depends-on, Math]` |
-| 5 | not help |
-| 6 | `Engine` → positional. `--kind staticlib` → enum ok → `bag[kind]=[staticlib]`. `--depends-on Core`, `--depends-on Math` (repeatable) → `bag[depends-on]=[Core,Math]`. bind positional `name` ← `Engine` → `bag[name]=[Engine]`. required `--kind` present. no errors. |
-| 7 | `Invocation{ id: ProjectAdd, global:{verbose,dryRun}, args:{ name:[Engine], kind:[staticlib], depends-on:[Core,Math] } }` |
+| 1 | `global = { verbose:true, dryRun:true }`; `tokens = [project, add, Engine, --kind, staticlib, --depends-on, Core, --depends-on, Math]` |
+| 2 | not version |
+| 3 | noun `project` + sub `add` → `spec = "project add"`, consume 2; `tokens = [Engine, --kind, staticlib, --depends-on, Core, --depends-on, Math]` |
+| 4 | not help |
+| 5 | `Engine` → positional. `--kind` seen → options mode. `--kind staticlib` → enum ok → `bag[kind]=[staticlib]`. `--depends-on Core`, `--depends-on Math` (repeatable) → `bag[depends-on]=[Core,Math]`. bind positional `name` ← `Engine` → `bag[name]=[Engine]`. required `--kind` present. no errors. |
+| 6 | `Invocation{ id: ProjectAdd, global:{verbose,dryRun}, args:{ name:[Engine], kind:[staticlib], depends-on:[Core,Math] } }` |
 
 Handler unpacks `name="Engine"`, `kind="staticlib"`, `dependsOn=["Core","Math"]`,
 `noScaffold=false`; `_g.dryRun` true → prints the file plan, writes nothing.
@@ -573,20 +563,20 @@ Handler unpacks `name="Engine"`, `kind="staticlib"`, `dependsOn=["Core","Math"]`
 | step | result |
 |---|---|
 | 0 | `tokens = [build, Release, --only, Engine,Game]` |
-| 1–3 | no `--`; no globals; not version |
-| 4 | `build` is a flat verb → `spec = "build"`, consume 1; `tokens = [Release, --only, Engine,Game]` |
-| 5 | not help |
-| 6 | `Release` → positional. `--only` is `List` → comma-split → `bag[only]=[Engine,Game]`. bind positional `config` ← `Release`, enum ok → `bag[config]=[Release]`. |
-| 7 | `Invocation{ id: Build, global:{}, args:{ config:[Release], only:[Engine,Game] } }` |
+| 1–2 | no globals; not version |
+| 3 | `build` is a flat verb → `spec = "build"`, consume 1; `tokens = [Release, --only, Engine,Game]` |
+| 4 | not help |
+| 5 | `Release` → positional. `--only` is `List` → comma-split → `bag[only]=[Engine,Game]`. bind positional `config` ← `Release`, enum ok → `bag[config]=[Release]`. |
+| 6 | `Invocation{ id: Build, global:{}, args:{ config:[Release], only:[Engine,Game] } }` |
 
 Handler: `config = _args.GetOptional("config").value_or("Debug")` → `"Release"`;
 `only = _args.GetList("only")` → `["Engine","Game"]`.
 
 ### 9.3 Error case — `solgen project add --kind statlib`
 
-- step 6 collects: `missing <name>` (positional), `--kind must be one of console,
+- step 5 collects: `missing <name>` (positional), `--kind must be one of console,
   window, staticlib, dynamiclib (got 'statlib')`.
-- step 7 returns `Error{ Validation, "invalid \`project add\` invocation",
+- step 6 returns `Error{ Validation, "invalid \`project add\` invocation",
   details: [above two] }`; `main` prints `e.Format()` then a
   `try: solgen project add --help` hint; exit `1`.
 
@@ -597,11 +587,16 @@ Handler: `config = _args.GetOptional("config").value_or("Debug")` → `"Release"
 - **Unknown command/subcommand** → the `Error` message lists every valid command.
   `CommandTable::Resolve` returns the `Error`, so Levenshtein "did you mean …?" can
   be added to that message later with no interface change. _(deferred)_
-- **`ArgReader`** → keep, as a ~15-line local struct in `Cli.cpp` (stage [6] needs
+- **`ArgReader`** → keep, as a ~15-line local struct in `Cli.cpp` (stage [5] needs
   `NextLooksLikeOption()` and inline-`=` handling).
 - **Global flags** → accepted **anywhere** in the token stream. Safe: every
   command-local option in `CLI_SPEC.md` is long-form only and none reuse a global
-  name. Literal dash-leading positional values use the `--` escape.
+  name.
+- **Argument order** → each command is `<path> <positionals...> <options...>`.
+  The first `--`-prefixed token ends the positional region; a plain token after
+  that is `unexpected argument 'x'`. No `--` end-of-options delimiter in v1 — no
+  command has a positional value that can begin with `--` (see `CLI_SPEC.md`
+  "Argument order"). Add it later, non-breaking, when a command needs it.
 - **Exit codes** → `solgen`, `solgen --help`, `solgen <cmd> --help` print to
   **stdout**, exit **0**. Shape errors print to **stderr**, exit **1** (the
   existing `ErrorCode::Validation` — a missing required arg is a validation error).
@@ -615,21 +610,21 @@ Bottom-up. Every step compiles and is checkable on its own before the next. Step
 
 ### Phase A — result types (leaf, no dependencies)
 
-- [ ] **1. `cli/CommandId.h`** — the `enum class CommandId` (all 17 + `None`).
+- [x] **1. `cli/CommandId.h`** — the `enum class CommandId` (all 17 + `None`).
       Nothing depends on anything. Compiles.
-- [ ] **2. `cli/GlobalFlags.h`** — the struct (`dryRun`, `yes`, `verbose`,
+- [x] **2. `cli/GlobalFlags.h`** — the struct (`dryRun`, `yes`, `verbose`,
       `configPath`). Compiles.
-- [ ] **3. `cli/ArgBag.{h,cpp}`** — the `map` + `Add` + all six getters.
+- [x] **3. `cli/ArgBag.{h,cpp}`** — the `map` + `Add` + all six getters.
       _Check:_ a scratch `assert(bag.GetString("x") == "1")` after `bag.Add("x","1")`;
       `GetList` returns both after two `Add`s; `GetFlag` false when absent.
-- [ ] **4. `cli/Invocation.h`** — bundles `CommandId` + `GlobalFlags` + `ArgBag` +
+- [x] **4. `cli/Invocation.h`** — bundles `CommandId` + `GlobalFlags` + `ArgBag` +
       `done`. Compiles.
 
 ### Phase B — the command table
 
-- [ ] **5. `cli/CommandSpec.h`** — `ValueKind`, `OptionSpec`, `PositionalSpec`,
+- [x] **5. `cli/CommandSpec.h`** — `ValueKind`, `OptionSpec`, `PositionalSpec`,
       `CommandSpec`. Pure data. Compiles.
-- [ ] **6. `cli/CommandTable.{h,cpp}` — skeleton with two entries only**: `make`
+- [x] **6. `cli/CommandTable.{h,cpp}` — skeleton with two entries only**: `make`
       (flat verb) and `project add` (noun group). Implement `All()`,
       `IsNounGroup()`, `Resolve()`.
       _Check:_ `Resolve(["make", ...])` → make spec, `consumed == 1`;
@@ -643,48 +638,48 @@ Each step adds one private method to `Parser` (in `cli/Cli.cpp`) and wires it in
 `Parser::Run`. `Cli::Parse` + `Parser` shell + `main` wiring land in step 7 and
 don't change afterward.
 
-- [ ] **7. Shell + stage [0] + no-args.** `Cli.h` (`Cli::Parse`), `Parser` class
+- [x] **7. Shell + stage [0] + no-args.** `Cli.h` (`Cli::Parse`), `Parser` class
       with just member state and `Run`. Stage 0: copy `argv` → `m_tokens`.
       Empty → print a one-line placeholder usage, `done = true`, `Error::Ok`.
       Wire `main.cpp` (§5). _Check:_ `solgen` prints the placeholder, exit 0.
-- [ ] **8. Stage [1] — `SplitEndOfOptions`.** _Check:_ with a temporary debug
-      print, `solgen a -- b -c` → `m_tokens = [a]`, `m_forced = [b, -c]`.
-- [ ] **9. Stage [2] — `ExtractGlobals` + `GlobalFlagTable`.** Recognize and remove
+- [x] **8. Stage [1] — `ExtractGlobals` + `GlobalFlagTable`.** Recognize and remove
       `-n -y -v --config <v>`; set `m_wantHelp` / `m_wantVersion`.
       _Check:_ `solgen -v --config x make` → `m_global.verbose`, `configPath == "x"`,
       `m_tokens == [make]`. `solgen --version` → prints version, exit 0.
-- [ ] **10. Stage [4] — resolve path.** Call `CommandTable::Resolve` from `Run`,
+- [x] **9. Stage [3] — resolve path.** Call `CommandTable::Resolve` from `Run`,
       store the `CommandSpec const*`, drop the consumed tokens.
       _Check:_ `solgen make` and `solgen project add` resolve; `solgen bogus`
       errors, exit 1.
-- [ ] **11. Stage [6] — `BindArgs` + `ArgReader`.** Build it up in sub-steps, each
+- [ ] **10. Stage [5] — `BindArgs` + `ArgReader`.** Build it up in sub-steps, each
       verified against the `project add` / `build` specs:
-  - [ ] 11a. positionals only → `bag["name"]` from `solgen project add Engine`
-  - [ ] 11b. `Flag` options → `--no-scaffold`
-  - [ ] 11c. value options, both `--kind x` and `--kind=x`
-  - [ ] 11d. `Enum` check → `--kind statlib` adds a `details` line
-  - [ ] 11e. `repeatable` → `--depends-on A --depends-on B` → `["A","B"]`
-  - [ ] 11f. `List` → `--only A,B` comma-split → `["A","B"]`
-  - [ ] 11g. error accumulation → missing required positional/option, unknown
+  - [ ] 10a. positionals only → `bag["name"]` from `solgen project add Engine`
+  - [ ] 10b. `Flag` options → `--no-scaffold`
+  - [ ] 10c. value options, both `--kind x` and `--kind=x`
+  - [ ] 10d. `Enum` check → `--kind statlib` adds a `details` line
+  - [ ] 10e. `repeatable` → `--depends-on A --depends-on B` → `["A","B"]`
+  - [ ] 10f. `List` → `--only A,B` comma-split → `["A","B"]`
+  - [ ] 10g. order rule → a plain token after the first `--flag` →
+        `unexpected argument 'x'`
+  - [ ] 10h. error accumulation → missing required positional/option, unknown
         option, extra positional, duplicate non-repeatable — all reported at once
-  - [ ] 11h. fold `m_forced` in as trailing positionals
-- [ ] **12. Stage [7] — assemble.** `Run` returns `m_error` if it has details,
+- [ ] **11. Stage [6] — assemble.** `Run` returns `m_error` if it has details,
       else fills `Invocation`. _Check:_ example 9.1 and 9.2 from this doc produce
       the stated `Invocation`; 9.3 produces the stated error + exit 1.
 
 ### Phase D — fill out
 
-- [ ] **13. Complete `CommandTable.cpp`** — all 17 commands from `CLI_SPEC.md`'s
+- [ ] **12. Complete `CommandTable.cpp`** — all 17 commands from `CLI_SPEC.md`'s
       command index, every positional and option. No new logic.
-- [ ] **14. `cli/Help.{h,cpp}`** — `General()` (banner + command index from
+- [ ] **13. `cli/Help.{h,cpp}`** — `General()` (banner + command index from
       `CommandTable::All`), `Group(noun)`, `Command(spec)` (usage line built from
       the spec + the global-flags list). Replace the step-7 placeholder; wire the
-      `m_wantHelp` short-circuits at stage [3.5] and after stage [4].
+      `m_wantHelp` short-circuits inside stage [3] (general / group) and at
+      stage [4] (per-command).
       _Check:_ `solgen --help`, `solgen project --help`, `solgen build --help`.
 
 ### Phase E — the dispatch seam (`TASKS.md` "Command dispatch table")
 
-- [ ] **15. `cmd/Dispatch.{h,cpp}`** — `switch (inv.id)`, every arm
+- [ ] **14. `cmd/Dispatch.{h,cpp}`** — `switch (inv.id)`, every arm
       `return Error::Validation("not implemented: <path>")` for now. Wire into
       `main` after `Cli::Parse`.
       _Milestone:_ every command in `CLI_SPEC.md` now parses, validates its shape,

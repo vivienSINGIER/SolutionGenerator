@@ -17,6 +17,29 @@ Hybrid:
 - **Grouped nouns** for setup — run once at project start, occasionally later:
   `project`, `dep`, `vendor`, plus the flat `new`, `set`, and `sync-bats`.
 
+### Argument order
+
+Every command reads left to right as:
+
+```
+solgen <command-path> <positionals...> <options...>
+```
+
+Positionals come first and bind by position. The **first token starting with
+`--` ends the positional region**; everything from there on is options and their
+values. A plain (non-`--`) token that appears after options have started is an
+error (`unexpected argument 'x'`).
+
+Command-local options are always long form (`--kind`, `--only`, …). Short flags
+(`-n`, `-y`, `-v`, `-h`) and `--version` / `--config` are global-only and may
+appear anywhere in the line.
+
+There is **no `--` end-of-options delimiter** in v1: no command takes a
+positional value that can begin with `--` (preprocessor names like `WIN32` are
+bare; `set` / `project set` values are enums, bools, or comma lists). It can be
+added later without breaking any existing invocation if a command ever needs it
+(the likely first case: `run` forwarding trailing args to the launched exe).
+
 ## Solution discovery
 
 Every command except `new` locates the solution by **searching upward from the
