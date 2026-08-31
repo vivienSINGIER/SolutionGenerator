@@ -5,6 +5,7 @@
 #include "ArgReader.h"
 #include "CommandTable.h"
 #include "Help.h"
+#include "core/Logger.h"
 #include "core/Version.h"
 
 Error Cli::Parse(int _argc, char** _argv, Invocation& _out)
@@ -41,6 +42,7 @@ Error Parser::Run(Invocation& _out)
     
     if (m_wantVersion)
     {
+        Log::Log(LogType::Help, "Liftoff " + std::string(Version::string) + '\n');
         std::cout << "Liftoff " << Version::string << "\n";
         _out.done = true;
         return Error::Ok();
@@ -80,7 +82,12 @@ Error Parser::Run(Invocation& _out)
     }
     
     if (resErr)
+    {
         AddError(resErr.Format());
+        return m_error;
+    }
+    
+    _out.cmdId = cSpec->id;
     
     BindArgs(*cSpec);
     

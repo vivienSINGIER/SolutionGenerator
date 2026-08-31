@@ -2,6 +2,8 @@
 
 #include "cli/CommandTable.h"
 #include "cli/Cli.h"
+#include "commands/Dispatch.h"
+#include "core/Logger.h"
 
 char** MakeCharArray(const char* input) {
     std::vector<char*> temp;
@@ -37,7 +39,14 @@ int main(int _argc, char** _argv)
         return e.Exit();
     if (e)
     {
-        std::cerr << e.Format() << '\n';
+        Log::Log(LogType::Error, e.Format() + '\n');
+        return e.Exit();
+    }
+    
+    e = Dispatch(inv);
+    if (e)
+    {
+        Log::Log(LogType::Error, e.Format() + '\n');
         return e.Exit();
     }
         

@@ -1,11 +1,11 @@
 ﻿#include "Help.h"
 
 #include <format>
-#include <iostream>
 #include <ranges>
 
 #include "CommandTable.h"
 #include "GlobalFlags.h"
+#include "core/Logger.h"
 #include "core/Version.h"
 
 namespace Help
@@ -15,32 +15,35 @@ namespace Help
         std::string banner = std::format("Liftoff {} - MSBuild solution generator\n", Version::string);
         std::string usage = "usage: Liftoff <command> [<args>] [global options]\n";
         std::string instruction = "run 'Liftoff <command> --help' for details on a command";
-        
-        std::cout << banner << '\n' << usage << '\n';
-        std::cout << FormatCommandList(CommandTable::All()) << '\n';
-        std::cout << GlobalLabel() << '\n';
-        std::cout << instruction << '\n';
+
+        std::string out = banner + '\n' + usage + '\n'
+                        + FormatCommandList(CommandTable::All()) + '\n'
+                        + GlobalLabel() + '\n'
+                        + instruction + '\n';
+        Log::Log(LogType::Help, out);
     }
 
     void Group(std::string_view _group)
     {
         std::string usage = std::format("usage: Liftoff {} <subcommands> [<args>] [global options]\n", _group);
         std::string instruction = std::format("run 'Liftoff {} <subcommand> --help' for detail\n", _group);
-        
-        std::cout << usage << '\n';
-        std::cout << SubcommandLabel(_group) << '\n';
-        std::cout << GlobalLabel() << '\n';
-        std::cout << instruction << '\n';
+
+        std::string out = usage + '\n'
+                        + SubcommandLabel(_group) + '\n'
+                        + GlobalLabel() + '\n'
+                        + instruction + '\n';
+        Log::Log(LogType::Help, out);
     }
 
     void Command(CommandSpec const& _spec)
     {
         std::string usage = "usage: " + UsageLine(_spec) + "\n";
-        
-        std::cout << usage << '\n' << _spec.summary << '\n' << '\n';
-        std::cout << ArgumentLabel(_spec) << '\n';
-        std::cout << OptionsLabel(_spec) << '\n';
-        std::cout << GlobalLabel() << '\n';
+
+        std::string out = usage + '\n' + _spec.summary + '\n' + '\n'
+                        + ArgumentLabel(_spec) + '\n'
+                        + OptionsLabel(_spec) + '\n'
+                        + GlobalLabel() + '\n';
+        Log::Log(LogType::Help, out);
     }
 
     std::string ValuePlaceholder(CommandValueType _type, std::span<std::string const> _enumValues)                                                                                                                             
