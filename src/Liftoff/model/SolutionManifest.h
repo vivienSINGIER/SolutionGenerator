@@ -3,11 +3,13 @@
 
 #include <string>
 #include <vector>
+#include <filesystem>
 
 #include "core/Error.h"
 #include "vendor/nlohmann/json.hpp"
 #include "cli/ArgBag.h"
 
+namespace fs = std::filesystem;
 using js = nlohmann::json;
 
 struct ProjectDesc
@@ -18,7 +20,7 @@ struct ProjectDesc
 
 struct ConfigOverride
 {
-    std::string m_warningLvl;
+    std::string warningLvl;
     bool warningsAsErrors;
     bool conformanceMode;
     
@@ -33,7 +35,7 @@ class SolutionManifest
 public:
     SolutionManifest();
     
-    Error Serialize(js& _js);
+    Error Serialize(fs::path const& _configPath);
     
     Error Deserialize(ArgBag const& _args);
     Error Deserialize(js const& _js);
