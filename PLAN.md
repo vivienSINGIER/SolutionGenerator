@@ -1,4 +1,4 @@
-# Solution Generator — Project Plan
+Oh ok, # Solution Generator — Project Plan
 
 Working notes for the custom Solution Generator (`solgen`). `solgen` reads a set of
 JSON config files and emits the `.sln` / `.vcxproj` files for a solution, plus the
@@ -110,7 +110,10 @@ commit or resolve in a merge.
 
 ```json
 {
+  "schemaVersion": 1,
+
   "name": "MySolution",
+  "startupProject": "Game",
 
   "configurations": ["Debug", "Release"],
   "platform": "x64",
@@ -125,6 +128,10 @@ commit or resolve in a merge.
   "defines": [],
   "includeDirs": [],
 
+  "config": {
+    "Release": { "warningsAsErrors": true }
+  },
+
   "projects": [
     { "name": "Engine", "group": "Libs" },
     { "name": "Game",   "group": "Apps" }
@@ -134,7 +141,9 @@ commit or resolve in a merge.
 
 | field | default | meaning |
 |---|---|---|
+| `schemaVersion` | _(required)_ | manifest format version; bump on breaking schema changes |
 | `name` | _(required)_ | solution name; `.sln` filename |
+| `startupProject` | _(none)_ | project name `run` targets by default when more than one project is runnable |
 | `configurations` | `["Debug","Release"]` | build configurations to emit |
 | `platform` | `"x64"` | target platform |
 | `toolset` | `"v143"` | `PlatformToolset` |
@@ -145,6 +154,7 @@ commit or resolve in a merge.
 | `warningsAsErrors` | `false` | `/WX` |
 | `defines` | `[]` | preprocessor defines added to every project |
 | `includeDirs` | `[]` | include dirs added to every project |
+| `config` | `{}` | per-configuration overrides, deep-merged over the scalar fields above; each project's own `config` block deep-merges on top of this |
 | `projects` | _(required)_ | ordered list; `group` = IDE solution folder (optional) |
 
 ### `tools/config/projects/<Name>.json`
@@ -153,6 +163,8 @@ Filename = project name = folder name in `src/` and `res/`.
 
 ```json
 {
+  "schemaVersion": 1,
+
   "kind": "console",
 
   "dependencies": ["Engine"],
@@ -179,6 +191,7 @@ Filename = project name = folder name in `src/` and `res/`.
 
 | field | default | meaning |
 |---|---|---|
+| `schemaVersion` | _(required)_ | manifest format version; bump on breaking schema changes |
 | `kind` | _(required)_ | `console` \| `window` \| `staticlib` \| `dynamiclib` |
 | `dependencies` | `[]` | other solution projects; emits `ProjectReference` and pulls their `exports` onto this project's include path |
 | `exports` | `["."]` | lib only: folders (rel. `src/<Name>/`) added to dependents' include path |

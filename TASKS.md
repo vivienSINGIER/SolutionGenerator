@@ -22,7 +22,7 @@ Spec references: `PLAN.md` (solution model, folder tree, manifest schema),
 - [x] CLI parser: hybrid grammar (flat verbs + grouped nouns), global flags (`-n/--dry-run`, `-y/--yes`, `-v/--verbose`, `-h/--help`, `--version`, `--config`)
 - [x] Command dispatch table (command path → handler function)
 - [x] Error type + exit-code mapping (`0` ok, `1` validation, `2` I/O, `3` declined, `4` build)
-- [ ] Logging with verbosity levels; `--verbose` switch
+- [x] Logging with verbosity levels; `--verbose` switch
 
 ## Phase 2 — Manifest model
 

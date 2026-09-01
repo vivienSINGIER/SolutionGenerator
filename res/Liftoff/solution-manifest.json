@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+
+  "name": "MySolution",
+  "startupProject": "Game",
+
+  "configurations": ["Debug", "Release"],
+  "platform": "x64",
+  "toolset": "v143",
+  "cppStandard": "20",
+
+  "characterSet": "Unicode",
+  "conformanceMode": true,
+  "warningLevel": "W4",
+  "warningsAsErrors": false,
+
+  "defines": [],
+  "includeDirs": [],
+
+  "config": {
+    "Release": { "warningsAsErrors": true }
+  },
+
+  "projects": [
+    { "name": "Engine", "group": "Libs" },
+    { "name": "Game",   "group": "Apps" }
+  ]
+}

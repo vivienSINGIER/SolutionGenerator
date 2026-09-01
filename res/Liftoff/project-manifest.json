@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+
+  "kind": "console",
+
+  "dependencies": ["Engine"],
+  "exports": ["."],
+
+  "defines": ["GAME_INTERNAL"],
+  "includeDirs": [],
+  "exclude": ["experimental/**"],
+
+  "vendor": {
+    "fmt": {
+      "include": ["fmt/include"],
+      "libs": ["fmt.lib"],
+      "libDirs": { "Debug": "fmt/lib/x64/Debug", "Release": "fmt/lib/x64/Release" },
+      "dlls": []
+    }
+  },
+
+  "config": {
+    "Release": { "defines": ["GAME_SHIP"] }
+  }
+}
