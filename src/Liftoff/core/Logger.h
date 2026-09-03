@@ -5,7 +5,7 @@
 
 enum class LogType : int
 {
-    Help, Info, Warning, Error
+    Help, Info, PromptInfo, Prompt, Warning, Error
 };
 
 namespace Log

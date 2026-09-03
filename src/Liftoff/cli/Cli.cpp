@@ -97,6 +97,8 @@ Error Parser::Run(Invocation& _out)
         m_error.message = "invalid '" + cSpec->Path() + "' invocation";
     }
     
+    _out.argBag = m_argBag;
+    
     return m_error;
 }
 

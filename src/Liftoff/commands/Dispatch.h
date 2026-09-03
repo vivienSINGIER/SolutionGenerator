@@ -4,6 +4,9 @@
 #include "cli/Invocation.h"
 #include "core/Error.h"
 
-Error Dispatch(Invocation const& _inc);
-
+namespace Cmd
+{
+    Error Dispatch(Invocation const& _inv);
+}
+    
 #endif

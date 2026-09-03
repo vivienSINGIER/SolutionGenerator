@@ -1,7 +1,8 @@
 {
   "schemaVersion": 1,
 
-  "kind": "console",
+  "name": "Game",
+  "kind": "ConsoleApp",
 
   "dependencies": ["Engine"],
   "exports": ["."],
@@ -19,7 +20,7 @@
     }
   },
 
-  "config": {
+  "configOverrides": {
     "Release": { "defines": ["GAME_SHIP"] }
   }
 }

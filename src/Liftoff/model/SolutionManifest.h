@@ -1,34 +1,7 @@
 ﻿#ifndef SOLUTIONMANIFEST_H_DEFINED
 #define SOLUTIONMANIFEST_H_DEFINED
 
-#include <string>
-#include <vector>
-#include <filesystem>
-
-#include "core/Error.h"
-#include "vendor/nlohmann/json.hpp"
-#include "cli/ArgBag.h"
-
-namespace fs = std::filesystem;
-using js = nlohmann::json;
-
-struct ProjectDesc
-{
-    std::string name;
-    std::string group;
-};
-
-struct ConfigOverride
-{
-    std::string warningLvl;
-    bool warningsAsErrors;
-    bool conformanceMode;
-    
-    std::vector<std::string> defines;
-    std::vector<std::string> includeDirs;
-    
-    bool overrides[5];
-};
+#include "Manifest.h"
 
 class SolutionManifest 
 {
@@ -38,9 +11,8 @@ public:
     Error Serialize(fs::path const& _configPath);
     
     Error Deserialize(ArgBag const& _args);
-    Error Deserialize(js const& _js);
+    Error Deserialize(fs::path const& _configPath);
     
-private:
     int m_schemaVersion;
     
     std::string         m_name;

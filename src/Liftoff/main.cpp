@@ -4,6 +4,7 @@
 #include "cli/Cli.h"
 #include "commands/Dispatch.h"
 #include "core/Logger.h"
+#include "model/SolutionManifest.h"
 
 char** MakeCharArray(const char* input) {
     std::vector<char*> temp;
@@ -33,21 +34,21 @@ int main(int _argc, char** _argv)
     Invocation inv;
     Error e = Cli::Parse(_argc, _argv, inv);
     
-    // Error e = Cli::Parse(4, MakeCharArray("./Liftoff new ../ --name"), inv);
+    // Error e = Cli::Parse(5, MakeCharArray("./Liftoff new ./ --name TestSolution"), inv);
     
     if (inv.done) 
-        return e.Exit();
+    return e.Exit();
     if (e)
     {
-        Log::Log(LogType::Error, e.Format() + '\n');
-        return e.Exit();
+    Log::Log(LogType::Error, e.Format() + '\n');
+    return e.Exit();
     }
     
-    e = Dispatch(inv);
+    e = Cmd::Dispatch(inv);
     if (e)
     {
-        Log::Log(LogType::Error, e.Format() + '\n');
-        return e.Exit();
+    Log::Log(LogType::Error, e.Format() + '\n');
+    return e.Exit();
     }
         
     return 0;
