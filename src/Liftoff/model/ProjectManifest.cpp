@@ -7,39 +7,39 @@ using Manifest::ReadOptional;
 
 static bool IsValidKind(std::string const& _kind)
 {
-    return _kind == "Application" || _kind == "ConsoleApp"
-        || _kind == "StaticLib"   || _kind == "DynamicLib";
+    return _kind == "console" || _kind == "window"
+        || _kind == "staticlib"   || _kind == "dynamiclib";
 }
 
 static std::string const KIND_HINT =
-    "must be 'Application', 'ConsoleApp', 'StaticLib' or 'DynamicLib'";
+    "must be 'console', 'window', 'staticlib' or 'dynamiclib'";
 
 ProjectManifest::ProjectManifest()
 {
-    m_schemaVersion = MANIFEST_SCHEMA_VERSION;
+    schemaVersion = MANIFEST_SCHEMA_VERSION;
 
-    m_name = "MyProject";
-    m_kind = "Application";
+    name = "MyProject";
+    kind = "window";
 }
 
 Error ProjectManifest::Serialize(fs::path const& _configPath)
 {
     js c;
 
-    c["schemaVersion"] = m_schemaVersion;
+    c["schemaVersion"] = schemaVersion;
 
-    c["name"] = m_name;
-    c["kind"] = m_kind;
+    c["name"] = name;
+    c["kind"] = kind;
 
-    c["dependencies"] = m_dependencies;
-    c["exports"] = m_exports;
+    c["dependencies"] = dependencies;
+    c["exports"] = exports;
 
-    c["defines"] = m_defines;
-    c["includeDirs"] = m_includeDirs;
-    c["exclude"] = m_exclude;
+    c["defines"] = defines;
+    c["includeDirs"] = includeDirs;
+    c["exclude"] = exclude;
 
     c["vendor"] = js::object();
-    for (auto const& pair : m_vendor)
+    for (auto const& pair : vendor)
     {
         std::string const& name = pair.first;
         VendorDep const& v = pair.second;
@@ -51,7 +51,7 @@ Error ProjectManifest::Serialize(fs::path const& _configPath)
     }
 
     c["configOverrides"] = js::object();
-    for (auto const& pair : m_configOverrides)
+    for (auto const& pair : configOverrides)
     {
         std::string const& config = pair.first;
         ConfigOverride const& override = pair.second;
@@ -74,15 +74,15 @@ Error ProjectManifest::Serialize(fs::path const& _configPath)
 Error ProjectManifest::Deserialize(ArgBag const& _args)
 {
     if (_args.Exists("name"))
-        m_name = _args.Get("name");
+        name = _args.Get("name");
     else
         return Error::Validation("missing required argument 'name'");
 
     if (_args.Exists("kind"))
     {
-        m_kind = _args.Get("kind");
-        if (!IsValidKind(m_kind))
-            return Error::Validation("invalid project kind '" + m_kind + "'. " + KIND_HINT);
+        kind = _args.Get("kind");
+        if (!IsValidKind(kind))
+            return Error::Validation("invalid project kind '" + kind + "'. " + KIND_HINT);
     }
 
     return Error::Ok();
@@ -104,18 +104,18 @@ Error ProjectManifest::Deserialize(fs::path const& _configPath)
     int version = 0;
     if (ReadRequired(j, "schemaVersion", version, err) && version != MANIFEST_SCHEMA_VERSION)
         err.details.push_back("Outdated schemaVersion, please update your project");
-    m_schemaVersion = version;
+    schemaVersion = version;
 
-    ReadRequired(j, "name",         m_name,         err);
-    ReadRequired(j, "dependencies", m_dependencies, err);
-    ReadRequired(j, "defines",      m_defines,      err);
-    ReadRequired(j, "includeDirs",  m_includeDirs,  err);
+    ReadRequired(j, "name",         name,         err);
+    ReadRequired(j, "dependencies", dependencies, err);
+    ReadRequired(j, "defines",      defines,      err);
+    ReadRequired(j, "includeDirs",  includeDirs,  err);
 
-    if (ReadRequired(j, "kind", m_kind, err) && !IsValidKind(m_kind))
-        err.details.push_back("invalid project kind '" + m_kind + "'. " + KIND_HINT);
+    if (ReadRequired(j, "kind", kind, err) && !IsValidKind(kind))
+        err.details.push_back("invalid project kind '" + kind + "'. " + KIND_HINT);
 
-    ReadOptional(j, "exports", m_exports);
-    ReadOptional(j, "exclude", m_exclude);
+    ReadOptional(j, "exports", exports);
+    ReadOptional(j, "exclude", exclude);
 
     if (j.contains("vendor"))
     {
@@ -127,7 +127,7 @@ Error ProjectManifest::Deserialize(fs::path const& _configPath)
             ReadOptional(settings, "libDirs", v.libDirs);
             ReadOptional(settings, "dlls",    v.dlls);
 
-            m_vendor[name] = v;
+            vendor[name] = v;
         }
     }
 
@@ -168,7 +168,7 @@ Error ProjectManifest::Deserialize(fs::path const& _configPath)
                 o.overrides[4] = true;
             }
 
-            m_configOverrides[configName] = o;
+            configOverrides[configName] = o;
         }
     }
     else

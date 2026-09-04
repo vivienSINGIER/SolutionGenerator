@@ -7,46 +7,46 @@ using Manifest::ReadOptional;
 
 SolutionManifest::SolutionManifest()
 {
-    m_schemaVersion = MANIFEST_SCHEMA_VERSION;
+    schemaVersion = MANIFEST_SCHEMA_VERSION;
     
-    m_name = "MySolution";
+    name = "MySolution";
     m_startProject = "";
     
-    m_configs = { "Debug", "Release" };
-    m_platform = "x64";
-    m_toolset = "v143";
-    m_cppStandard = "20";
+    configs = { "Debug", "Release" };
+    platform = "x64";
+    toolset = "v143";
+    cppStandard = "20";
     
-    m_characterSet = "Unicode";
-    m_conformanceMode = true;
-    m_warningLvl = "W4";
-    m_warningsAsErrors = false;
+    characterSet = "Unicode";
+    conformanceMode = true;
+    warningLvl = "W4";
+    warningsAsErrors = false;
 }
 
-Error SolutionManifest::Serialize(fs::path const& _configPath)
+Error SolutionManifest::Serialize(fs::path const& _manifestPath)
 {
     js c;
     
-    c["schemaVersion"] = m_schemaVersion;
+    c["schemaVersion"] = schemaVersion;
     
-    c["name"] = m_name;
+    c["name"] = name;
     c["startProject"] = m_startProject;
     
-    c["configs"] = m_configs;
-    c["platform"] = m_platform;
-    c["toolset"] = m_toolset;
-    c["cppStandard"] = m_cppStandard;
+    c["configs"] = configs;
+    c["platform"] = platform;
+    c["toolset"] = toolset;
+    c["cppStandard"] = cppStandard;
     
-    c["characterSet"] = m_characterSet;
-    c["conformanceMode"] = m_conformanceMode;
-    c["warningLevel"] = m_warningLvl;
-    c["warningsAsErrors"] = m_warningsAsErrors;
+    c["characterSet"] = characterSet;
+    c["conformanceMode"] = conformanceMode;
+    c["warningLevel"] = warningLvl;
+    c["warningsAsErrors"] = warningsAsErrors;
     
-    c["defines"] = m_defines;
-    c["includeDirs"] = m_includeDirs;
+    c["defines"] = defines;
+    c["includeDirs"] = includeDirs;
     
     c["configOverrides"] = js::object();
-    for (auto const& pair : m_configOverrides)
+    for (auto const& pair : configOverrides)
     {
         std::string const& config = pair.first;
         ConfigOverride const& override = pair.second;
@@ -64,24 +64,24 @@ Error SolutionManifest::Serialize(fs::path const& _configPath)
     }
     
     c["projects"] = js::array();
-    for (auto const& p : m_projects)
+    for (auto const& p : projects)
         c["projects"].push_back({ {"name", p.name}, {"group", p.group} });
     
-    return FileHelper::WriteFileAtomic(_configPath, c.dump(4));
+    return FileHelper::WriteFileAtomic(_manifestPath, c.dump(4));
 }
 
 Error SolutionManifest::Deserialize(ArgBag const& _args)
 {
     if (_args.Exists("name"))
-        m_name = _args.Get("name");
+        name = _args.Get("name");
     else
         return Error::Validation("missing required argument 'name'");
     
     if (_args.Exists("toolset"))
-        m_toolset = _args.Get("toolset");
+        toolset = _args.Get("toolset");
     
     if (_args.Exists("cppStandard"))
-        m_cppStandard = _args.Get("cppStandard");
+        cppStandard = _args.Get("cppStandard");
     
     return Error::Ok();
 }
@@ -102,19 +102,19 @@ Error SolutionManifest::Deserialize(fs::path const& _configPath)
     int version = 0;
     if (ReadRequired(j, "schemaVersion", version, err) && version != MANIFEST_SCHEMA_VERSION)
         err.details.push_back("Outdated schemaVersion, please update your solution");
-    m_schemaVersion = version;
+    schemaVersion = version;
 
-    ReadRequired(j, "name",             m_name,             err);
-    ReadRequired(j, "configs",          m_configs,          err);
-    ReadRequired(j, "platform",         m_platform,         err);
-    ReadRequired(j, "toolset",          m_toolset,          err);
-    ReadRequired(j, "cppStandard",      m_cppStandard,      err);
-    ReadRequired(j, "characterSet",     m_characterSet,     err);
-    ReadRequired(j, "conformanceMode",  m_conformanceMode,  err);
-    ReadRequired(j, "warningLevel",     m_warningLvl,       err);
-    ReadRequired(j, "warningsAsErrors", m_warningsAsErrors, err);
-    ReadRequired(j, "defines",          m_defines,          err);
-    ReadRequired(j, "includeDirs",      m_includeDirs,      err);
+    ReadRequired(j, "name",             name,             err);
+    ReadRequired(j, "configs",          configs,          err);
+    ReadRequired(j, "platform",         platform,         err);
+    ReadRequired(j, "toolset",          toolset,          err);
+    ReadRequired(j, "cppStandard",      cppStandard,      err);
+    ReadRequired(j, "characterSet",     characterSet,     err);
+    ReadRequired(j, "conformanceMode",  conformanceMode,  err);
+    ReadRequired(j, "warningLevel",     warningLvl,       err);
+    ReadRequired(j, "warningsAsErrors", warningsAsErrors, err);
+    ReadRequired(j, "defines",          defines,          err);
+    ReadRequired(j, "includeDirs",      includeDirs,      err);
 
     ReadOptional(j, "startProject", m_startProject);
 
@@ -155,7 +155,7 @@ Error SolutionManifest::Deserialize(fs::path const& _configPath)
                 o.overrides[4] = true;
             }
             
-            m_configOverrides[configName] = o;
+            configOverrides[configName] = o;
         }
     }
     else 
@@ -176,7 +176,7 @@ Error SolutionManifest::Deserialize(fs::path const& _configPath)
             else
                 project.group = p["group"];
             
-            m_projects.push_back(project);
+            projects.push_back(project);
         }
     }
     else 

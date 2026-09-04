@@ -8,11 +8,15 @@
 class Workspace 
 {
 public:
-    Error Load(fs::path const& _exePath);
-    Error Save();
+    Error Load(fs::path const& _manifestPath);
+    Error Save(fs::path const& _configPath);
     
     SolutionManifest& GetSolution();
     
+    Error AddProject(ProjectManifest _projectManifest);
+    
+    std::vector<ProjectManifest>& GetProjects();
+    bool HasProject(std::string_view _projectName);
     Error GetProjectManifest(std::string_view _projectName, ProjectManifest& _out);
     
 private:

@@ -33,3 +33,47 @@ void Cmd::LogChange(std::string _change)
 {
     Log::Log(LogType::Info, _change + '\n');
 }
+
+void Cmd::Verbose(std::string _msg, bool _b)
+{
+    if (_b)
+        Cmd::LogChange(_msg);
+}
+
+Error Cmd::GetDefaultManifestPath(std::filesystem::path& _out)
+{
+    fs::path start;
+    FileHelper::ExecutablePath(start);
+        
+    fs::path out;
+    if (Error e = FileHelper::FindUpwards(start, ".liftoff", out))
+        return e;
+    
+    std::string solutionName;
+    if (Error e = FileHelper::ReadFile(out / ".liftoff", solutionName))
+        return e;
+    
+    out = out / "config" / (solutionName + ".json");
+    if (FileHelper::IsFile(out) == false)
+        return Error::Io("unable to find solution manifest at '" + out.string() + "'");
+    
+    _out = out;
+    return Error::Ok();
+}
+
+Error Cmd::GetRootPath(std::filesystem::path& _out)
+{
+    fs::path start;
+    FileHelper::ExecutablePath(start);
+        
+    fs::path out;
+    if (Error e = FileHelper::FindUpwards(start, ".liftoff", out))
+    {
+        Error err = Error::Io("unable to find solution root");
+        err.details.push_back(e.Format());
+        return err;
+    }
+    
+    _out = out;
+    return Error::Ok();
+}

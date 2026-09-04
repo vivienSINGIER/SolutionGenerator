@@ -13,21 +13,21 @@ public:
     Error Deserialize(ArgBag const& _args);
     Error Deserialize(fs::path const& _configPath);
     
-    int m_schemaVersion;
+    int schemaVersion;
 
-    std::string m_name;
-    std::string m_kind;
+    std::string name;
+    std::string kind;
 
-    std::vector<std::string> m_dependencies;
-    std::vector<std::string> m_exports;
+    std::vector<std::string> dependencies;
+    std::vector<std::string> exports;
 
-    std::vector<std::string> m_defines;
-    std::vector<std::string> m_includeDirs;
-    std::vector<std::string> m_exclude;
+    std::vector<std::string> defines;
+    std::vector<std::string> includeDirs;
+    std::vector<std::string> exclude;
 
-    std::map<std::string, VendorDep> m_vendor;
+    std::map<std::string, VendorDep> vendor;
 
-    std::map<std::string, ConfigOverride> m_configOverrides;
+    std::map<std::string, ConfigOverride> configOverrides;
 };
 
 #endif

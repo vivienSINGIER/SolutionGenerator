@@ -13,27 +13,27 @@ public:
     Error Deserialize(ArgBag const& _args);
     Error Deserialize(fs::path const& _configPath);
     
-    int m_schemaVersion;
+    int schemaVersion;
     
-    std::string         m_name;
+    std::string         name;
     std::string m_startProject;
     
-    std::vector<std::string> m_configs;
-    std::string m_platform;
-    std::string m_toolset;
-    std::string m_cppStandard;
+    std::vector<std::string> configs;
+    std::string platform;
+    std::string toolset;
+    std::string cppStandard;
     
-    std::string m_characterSet;
-    bool m_conformanceMode;
-    std::string m_warningLvl;
-    bool m_warningsAsErrors;
+    std::string characterSet;
+    bool conformanceMode;
+    std::string warningLvl;
+    bool warningsAsErrors;
     
-    std::vector<std::string> m_defines;
-    std::vector<std::string> m_includeDirs;
+    std::vector<std::string> defines;
+    std::vector<std::string> includeDirs;
     
-    std::map<std::string, ConfigOverride> m_configOverrides;
+    std::map<std::string, ConfigOverride> configOverrides;
     
-    std::vector<ProjectDesc> m_projects;
+    std::vector<ProjectDesc> projects;
 };
 
 #endif

@@ -27,16 +27,16 @@ namespace
             dirs += "      - '" + dir.string() + "'\n"; 
         plan.push_back(dirs);
         
-        plan.push_back("Create '.Liftoff' & '.gitignore' at root directory");
+        plan.push_back("Create '.liftoff' & '.gitignore' at root directory");
         plan.push_back("Copy 'Liftoff.exe' to /tools");
         
-        std::string batStr = "Create the following .bat helpers :";
+        std::string batStr = "Create the following .bat helpers :\n";
         
         for (auto const& b : bats)
             batStr += "      - '" + b.first + "'\n";
         plan.push_back(batStr);
         
-        plan.push_back("Create or override the solution manifest");
+        plan.push_back("Create or override the solution manifest file");
         
         Cmd::PrintPlan(plan);
         
@@ -45,17 +45,11 @@ namespace
         return Cmd::ApplyPrompt(static_cast<int>(plan.size()));
     }
     
-    void Verbose(std::string _msg, bool _b)
-    {
-        if (_b)
-            Cmd::LogChange(_msg);
-    }
-    
     Error FillWorkspace(Workspace& _ws, ArgBag const& _args)
     {
         SolutionManifest& sm = _ws.GetSolution();
         
-        sm.m_name = _args.Get("name");
+        sm.name = _args.Get("name");
         
         if (_args.Exists("toolset"))
         {
@@ -68,7 +62,7 @@ namespace
             if (isValid == false)
                 return Error::Validation("invalid or unimplemented toolset version");
             
-            sm.m_toolset = _args.Get("toolset");
+            sm.toolset = _args.Get("toolset");
         }
         if (_args.Exists("cpp-standard"))
         {
@@ -81,7 +75,7 @@ namespace
             if (isValid == false)
                 return Error::Validation("invalid cpp-standard version");
             
-            sm.m_cppStandard = _args.Get("cpp-standard");
+            sm.cppStandard = _args.Get("cpp-standard");
         }
         
         return Error::Ok();    
@@ -97,7 +91,7 @@ namespace
             if (Error tempE = FileHelper::WriteFileAtomic(path, bats[i].second))
                 e.details.push_back(tempE.Format());
             else
-                Verbose("created helper '" + bats[i].first + "'", _isV);
+                Cmd::Verbose("created helper '" + bats[i].first + "'", _isV);
         }
         
         if (e.details.size() > 0)
@@ -134,11 +128,17 @@ Error Cmd::New(Workspace& _ws, Invocation const& _inv)
         root / "tools",
         root / "tools" / "bats",
         root / "config",
+        root / "vendor"
     };
 
-    if (_inv.globalFlags.dryRun || _inv.globalFlags.yes == false)
+    if (_inv.globalFlags.dryRun)
     {
-        bool res = Prompt(dirs, !_inv.globalFlags.yes);
+        Prompt(dirs, false);
+        return Error::Ok();
+    }
+    if (_inv.globalFlags.yes == false)
+    {
+        bool res = Prompt(dirs, true);
         if (res == false)
             return Error::Declined("user declined any changes");
     }
@@ -152,7 +152,7 @@ Error Cmd::New(Workspace& _ws, Invocation const& _inv)
         Verbose("created directory '" + dir.string() + "'", isVerbose);
     }
      
-    if (Error e = FileHelper::WriteFileAtomic(root/ ".liftoff", ""))
+    if (Error e = FileHelper::WriteFileAtomic(root/ ".liftoff", name))
         return e;
     Verbose("created '.liftoff' root file", isVerbose);
     if (Error e = FileHelper::WriteFileAtomic(root/ ".gitignore", "ide"))

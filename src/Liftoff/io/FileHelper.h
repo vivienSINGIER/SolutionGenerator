@@ -21,20 +21,14 @@ namespace FileHelper
     // --- Directories ---
     Error CreateDir(fs::path const& _dir);
     Error DeleteDir(fs::path const& _dir);
-    // Recursive listing of _dir, files and sub-directories, sorted lexicographically
-    // so the result is identical run-to-run. Caller filters to what it needs.
     Error ListDir(fs::path const& _dir, std::vector<fs::path>& _out);
 
     // --- Files ---
     enum class WriteOutcome { Written, Unchanged };
 
     Error ReadFile(fs::path const& _file, std::string& _out);
-    // Write _content to _file crash-safely: write a unique sidecar temp in the
-    // same directory, then rename it over _file. A reader never sees a partial file.
     Error WriteFileAtomic(fs::path const& _file, std::string_view _content);
-    // Atomic write, skipped (Unchanged) when _file already holds exactly _content.
     Error WriteFileIfChanged(fs::path const& _file, std::string_view _content, WriteOutcome& _out);
-    // Atomic write, skipped (Unchanged) when _file already exists.
     Error WriteFileIfAbsent(fs::path const& _file, std::string_view _content, WriteOutcome& _out);
     Error TouchFile(fs::path const& _file, WriteOutcome& _out);
     Error RemoveFile(fs::path const& _file);
@@ -47,7 +41,7 @@ namespace FileHelper
     std::string ToForwardSlashes(fs::path const& _path);
     std::string ExtLower(fs::path const& _path);
     Error ExecutablePath(fs::path& _out);
-    std::optional<fs::path> FindUpwards(fs::path const& _start, fs::path const& _marker);
+    Error FindUpwards(fs::path const& _start, fs::path const& _marker, fs::path& _out);
 }
 
 #endif

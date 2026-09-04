@@ -336,22 +336,29 @@ namespace FileHelper
         return Error::Io("executable path is unreasonably long");
     }
 
-    std::optional<fs::path> FindUpwards(fs::path const& _start, fs::path const& _marker)
+    Error FindUpwards(fs::path const& _start, fs::path const& _marker, fs::path& _out)
     {
         std::error_code ec;
         fs::path current = fs::absolute(_start, ec);
         if (ec)
-            return std::nullopt;
+        {
+            Error e = Error::Io("unvalid start path");
+            e.details.push_back(ec.message());
+            return e;
+        }
         current = current.lexically_normal();
 
         while (true)
         {
             if (Exists(current / _marker))
-                return current;
+            {
+                _out = current;
+                return Error::Ok();
+            }
 
             fs::path parent = current.parent_path();
             if (parent == current)
-                return std::nullopt;
+                return Error::Io("unable to find marker '" + _marker.string() + "' from '" + _start.string() + "'");
 
             current = std::move(parent);
         }
