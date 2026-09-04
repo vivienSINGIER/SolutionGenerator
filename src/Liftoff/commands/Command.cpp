@@ -10,7 +10,7 @@ void Cmd::PrintPlan(std::vector<std::string> _plan)
     std::string out = "Command actions\n";
     for (size_t i = 0; i < _plan.size(); i++)
     {
-        std::string header = std::to_string(i) + ".";
+        std::string header = std::to_string(i + 1) + ".";
         out += std::format("  {:>3}  {}\n", header, _plan[i]);
     }
     out += "\n";

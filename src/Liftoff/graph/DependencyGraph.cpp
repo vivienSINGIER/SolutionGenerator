@@ -75,7 +75,10 @@ Error DependencyGraph::Visit(std::string _name)
         }
         
         if (m_nodeState[n] == NodeState::Unvisited)
-            Visit(n);
+        {
+            if (Error e = Visit(n))
+                return e;
+        }
     }
     m_path.pop_back();
     m_nodeState[_name] = NodeState::Visited;
