@@ -40,15 +40,15 @@ int main(int _argc, char** _argv)
     return e.Exit();
     if (e)
     {
-    Log::Log(LogType::Error, e.Format() + '\n');
-    return e.Exit();
+        Log::Log(LogType::Error, e.Format() + '\n');
+        return e.Exit();
     }
     
     e = Cmd::Dispatch(inv);
     if (e)
     {
-    Log::Log(LogType::Error, e.Format() + '\n');
-    return e.Exit();
+        Log::Log(LogType::Error, e.Format() + '\n');
+        return e.Exit();
     }
         
     return 0;
