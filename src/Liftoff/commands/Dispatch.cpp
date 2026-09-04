@@ -2,6 +2,7 @@
 
 #include "New.h"
 #include "ProjectAdd.h"
+#include "ProjectList.h"
 #include "ProjectRemove.h"
 #include "scan/Workspace.h"
 
@@ -18,6 +19,7 @@ Error Cmd::Dispatch(Invocation const& _inv)
     case CommandId::ProjectRemove:
         return Cmd::ProjectRemove(ws, _inv);
     case CommandId::ProjectList:
+        return Cmd::ProjectList(ws, _inv);
     case CommandId::ProjectSet:
     case CommandId::DepAdd:
     case CommandId::DepRemove:
