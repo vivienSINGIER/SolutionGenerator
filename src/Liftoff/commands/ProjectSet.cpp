@@ -1,6 +1,4 @@
-﻿#include "ProjectSet.h"
-
-#include "Command.h"
+﻿#include "Command.h"
 #include "core/Logger.h"
 
 namespace
@@ -79,7 +77,7 @@ Error Cmd::ProjectSet(Invocation const& _inv)
     js j;
     
     try { j = js::parse(str); }
-    catch (js::exception&) { return Error::Validation("unable to parse solution manifest file"); }
+    catch (js::exception&) { return Error::Validation("unable to parse project manifest file"); }
     
     std::vector<std::string> values;
     GetValues(value, values);
@@ -113,6 +111,16 @@ Error Cmd::ProjectSet(Invocation const& _inv)
         if (mvalue.is_number_float())
         {
             mvalue = std::stof(values[0]);
+            break;
+        }
+        if (mvalue.is_boolean())
+        {
+            if (values[0] == "true")
+                mvalue = true;
+            else if (values[0] == "false")
+                mvalue = false;
+            else
+                return Error::Validation("boolean expected, but got '" + values[0] + "'");
             break;
         }
         if (mvalue.is_array())

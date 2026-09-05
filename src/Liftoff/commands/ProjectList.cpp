@@ -1,6 +1,4 @@
-﻿#include "ProjectList.h"
-
-#include "Command.h"
+﻿#include "Command.h"
 #include "core/Logger.h"
 
 Error Cmd::ProjectList(Workspace& _ws, Invocation const& _inv)

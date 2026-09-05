@@ -1,5 +1,3 @@
-#include "commands/New.h"
-
 #include "Command.h"
 #include "cli/Invocation.h"
 #include "io/FileHelper.h"

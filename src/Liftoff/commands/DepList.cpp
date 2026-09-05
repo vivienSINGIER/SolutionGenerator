@@ -1,6 +1,4 @@
-﻿#include "DepList.h"
-
-#include "Command.h"
+﻿#include "Command.h"
 #include "core/Logger.h"
 
 Error Cmd::DepList(Workspace& _ws, Invocation const& _inv)

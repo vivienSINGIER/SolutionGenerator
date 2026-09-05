@@ -1,13 +1,7 @@
 ﻿#include "Dispatch.h"
 
-#include "DepAdd.h"
-#include "DepList.h"
-#include "DepRemove.h"
-#include "New.h"
-#include "ProjectAdd.h"
-#include "ProjectList.h"
-#include "ProjectRemove.h"
-#include "ProjectSet.h"
+#include "Command.h"
+
 #include "scan/Workspace.h"
 
 Error Cmd::Dispatch(Invocation const& _inv)
@@ -32,10 +26,8 @@ Error Cmd::Dispatch(Invocation const& _inv)
         return Cmd::DepRemove(ws, _inv);
     case CommandId::DepList:
         return Cmd::DepList(ws, _inv);
-    case CommandId::VendorAdd:
-    case CommandId::VendorRemove:
-    case CommandId::VendorList:
     case CommandId::Set:
+        return Cmd::Set(ws, _inv);
     case CommandId::SyncBats:
     case CommandId::Make:
     case CommandId::Build:
@@ -43,6 +35,9 @@ Error Cmd::Dispatch(Invocation const& _inv)
     case CommandId::Clean:
     case CommandId::Clear:
     case CommandId::Rebuild:
+    case CommandId::VendorAdd:
+    case CommandId::VendorRemove:
+    case CommandId::VendorList:
     case CommandId::None:
         return Error::Validation("unhandled command");    
     }

@@ -13,10 +13,14 @@ public:
     Error Deserialize(ArgBag const& _args);
     Error Deserialize(fs::path const& _configPath);
     
+    template <std::size_t N>
+    Error ValidateValues(std::string_view const (&_values)[N], std::string_view _value, std::string_view _key);
+    Error ValidateManifest();
+    
     int schemaVersion;
     
     std::string         name;
-    std::string m_startProject;
+    std::string startProject;
     
     std::vector<std::string> configs;
     std::string platform;
@@ -35,5 +39,7 @@ public:
     
     std::vector<ProjectDesc> projects;
 };
+
+#include "SolutionManifest.inl"
 
 #endif

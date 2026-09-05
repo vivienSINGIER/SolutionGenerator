@@ -1,6 +1,4 @@
-﻿#include "ProjectAdd.h"
-
-#include "Command.h"
+﻿#include "Command.h"
 
 namespace
 {
