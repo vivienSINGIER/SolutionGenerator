@@ -1,6 +1,8 @@
 ﻿#include "Dispatch.h"
 
 #include "DepAdd.h"
+#include "DepList.h"
+#include "DepRemove.h"
 #include "New.h"
 #include "ProjectAdd.h"
 #include "ProjectList.h"
@@ -27,7 +29,9 @@ Error Cmd::Dispatch(Invocation const& _inv)
     case CommandId::DepAdd:
         return Cmd::DepAdd(ws, _inv);
     case CommandId::DepRemove:
+        return Cmd::DepRemove(ws, _inv);
     case CommandId::DepList:
+        return Cmd::DepList(ws, _inv);
     case CommandId::VendorAdd:
     case CommandId::VendorRemove:
     case CommandId::VendorList:
