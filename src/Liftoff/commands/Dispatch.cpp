@@ -29,6 +29,7 @@ Error Cmd::Dispatch(Invocation const& _inv)
     case CommandId::Set:
         return Cmd::Set(ws, _inv);
     case CommandId::SyncBats:
+        return Cmd::SyncBats(ws, _inv);
     case CommandId::Make:
     case CommandId::Build:
     case CommandId::Run:

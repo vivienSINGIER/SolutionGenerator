@@ -32,6 +32,8 @@ namespace Cmd
     Error DepAdd(Workspace& _ws, Invocation const& _inv);
     Error DepRemove(Workspace& _ws, Invocation const& _inv);
     Error DepList(Workspace& _ws, Invocation const& _inv);
+    
+    Error SyncBats(Workspace& _ws, Invocation const& _inv);
 }
 
 #endif
