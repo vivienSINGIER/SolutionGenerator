@@ -26,20 +26,20 @@ Spec references: `PLAN.md` (solution model, folder tree, manifest schema),
 
 ## Phase 2 — Manifest model
 
-- [ ] Data types: `SolutionManifest`, `ProjectManifest`, vendor entry, per-config override block
-- [ ] nlohmann (de)serialization for every type
-- [ ] Defaults + inheritance merge: built-in profile < `solution.json` < project manifest (scalars replace, lists concat, config maps deep-merge)
-- [ ] Solution discovery: upward search from cwd for `tools/config/solution.json`; `--config` override
-- [ ] Load-all: parse `solution.json` + every `projects/*.json` into the model
-- [ ] Validation pass (report every problem in one go): required fields, `kind` enum, unknown dependency names, duplicate project names, malformed JSON with path to the offending field
+- [x] Data types: `SolutionManifest`, `ProjectManifest`, vendor entry, per-config override block
+- [x] nlohmann (de)serialization for every type
+- [x] Defaults + inheritance merge: built-in profile < `solution.json` < project manifest (scalars replace, lists concat, config maps deep-merge)
+- [x] Solution discovery: upward search from cwd for `tools/config/solution.json`; `--config` override
+- [x] Load-all: parse `solution.json` + every `projects/*.json` into the model
+- [x] Validation pass (report every problem in one go): required fields, `kind` enum, unknown dependency names, duplicate project names, malformed JSON with path to the offending field
 
 ## Phase 3 — Dependency graph & identity
 
-- [ ] Build the dependency graph from `dependencies`
-- [ ] Topological sort + cycle detection; on failure print the exact cycle
-- [ ] Resolve `exports` → additional include dirs propagated to each dependent
-- [ ] Resolve `vendor` entries → include dirs, lib dirs (per config), `AdditionalDependencies`, DLLs to copy
-- [ ] Deterministic GUID derivation: `uuidv5(SOLGEN_NAMESPACE, solutionName + "/" + projectName)`
+- [x] Build the dependency graph from `dependencies`
+- [x] Topological sort + cycle detection; on failure print the exact cycle
+- [x] Resolve `exports` → additional include dirs propagated to each dependent
+- [x] Resolve `vendor` entries → include dirs, lib dirs (per config), `AdditionalDependencies`, DLLs to copy
+- [x] Deterministic GUID derivation: `uuidv5(SOLGEN_NAMESPACE, solutionName + "/" + projectName)`
 
 ## Phase 4 — Source discovery
 
@@ -77,15 +77,15 @@ Spec references: `PLAN.md` (solution model, folder tree, manifest schema),
 
 ## Phase 9 — Setup / manifest-mutation commands
 
-- [ ] `.bat` wrapper generator: 6 general wrappers + per-project scoped ones, into `tools/bat/`
-- [ ] `new <path> --name`: create `tools/`, self-copy the running `.exe`, write `solution.json`, `.gitignore` (`.ide`), general wrappers
-- [ ] `project add <name> --kind`: folders `src/<name>` + `res/<name>`, starter `main.cpp` (`int main()` / `WinMain()`), `projects/<name>.json`, `solution.json` entry, per-project wrappers; `--no-scaffold`; `--depends-on`
-- [ ] `project remove <name> [--cascade] [--yes]`: remove manifests + entry + wrappers, keep source
-- [ ] `project list`
-- [ ] `project set <name> <key> <value>` / `set <key> <value>`: scalar set, validate-then-write
-- [ ] `dep add` / `dep remove`: with cycle check on add
-- [ ] `vendor add` / `vendor remove`
-- [ ] `sync-bats`: regenerate the whole `tools/bat/` set from the project list
+- [x] `.bat` wrapper generator: 6 general wrappers + per-project scoped ones, into `tools/bat/`
+- [x] `new <path> --name`: create `tools/`, self-copy the running `.exe`, write `solution.json`, `.gitignore` (`.ide`), general wrappers
+- [x] `project add <name> --kind`: folders `src/<name>` + `res/<name>`, starter `main.cpp` (`int main()` / `WinMain()`), `projects/<name>.json`, `solution.json` entry, per-project wrappers; `--no-scaffold`; `--depends-on`
+- [x] `project remove <name> [--cascade] [--yes]`: remove manifests + entry + wrappers, keep source
+- [x] `project list`
+- [x] `project set <name> <key> <value>` / `set <key> <value>`: scalar set, validate-then-write
+- [x] `dep add` / `dep remove`: with cycle check on add
+- [x] `vendor add` / `vendor remove`
+- [x] `sync-bats`: regenerate the whole `tools/bat/` set from the project list
 
 ## Phase 10 — Cross-cutting polish
 

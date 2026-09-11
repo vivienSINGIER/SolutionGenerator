@@ -3,26 +3,43 @@
 
 #include "model/ProjectManifest.h"
 
-class DependencyGraph 
+// Flattened, path-resolved vendor data for a project plus its transitive dependencies.
+struct ResolvedVendor
+{
+    std::vector<fs::path>          includeDirs;
+    std::vector<std::string>       libs;
+    std::map<std::string, fs::path> libDirs;   // config name -> lib search path
+    std::vector<fs::path>          dlls;
+};
+
+class DependencyGraph
 {
 public:
     DependencyGraph(std::vector<ProjectManifest> const& _projects);
 
     Error ValidateGraph();
+    Error ResolveExports(std::string _pName, std::vector<fs::path>& _exports);
+    Error ResolveVendor(std::string _pName, ResolvedVendor& _out);
 private:
     enum class NodeState { Unvisited, InProgress, Visited };
     
-    std::unordered_map<std::string, ProjectManifest const*> m_projects;
-    std::unordered_map<std::string, NodeState> m_nodeState;
+    struct Node
+    {
+        ProjectManifest const* project = nullptr;
+        NodeState state = NodeState::Unvisited;
+        std::vector<Node*> dependencies;
+    };
     
+    std::unordered_map<std::string, Node> m_graph;
     std::vector<std::string> m_path;
     
-    Error HasHoles();
+    Error BuildGraph();
     Error HasLoops();
     
     Error Visit(std::string _name);
     
-    bool Find(std::string_view _pName);
+    Error TravelExports(std::string const& _name, fs::path const& _root, std::vector<fs::path>& _exports);
+    Error TravelVendor(std::string const& _name, fs::path const& _vendorRoot, ResolvedVendor& _out);
 };
 
 #endif
