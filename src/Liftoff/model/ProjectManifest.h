@@ -22,7 +22,6 @@ public:
     std::vector<std::string> exports;
 
     std::vector<std::string> defines;
-    std::vector<std::string> includeDirs;
     std::vector<std::string> exclude;
 
     std::map<std::string, VendorDep> vendor;

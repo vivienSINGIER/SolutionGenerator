@@ -76,9 +76,9 @@ Error DependencyGraph::ResolveExports(std::string _pName, std::vector<fs::path>&
     if (Error e = Cmd::GetRootPath(root))
         return e;
     
-    if (FileHelper::IsDir(root / _pName) == false)
-        return Error::Io("directory '" + (root / _pName).string() + "' doesn't exist");
-    
+    if (FileHelper::IsDir(root / "src" / _pName) == false)
+        return Error::Io("directory '" + (root / "src" / _pName).string() + "' doesn't exist");
+
     if (Error e = TravelExports(_pName, root, _exports))
         return e;
 
@@ -165,7 +165,7 @@ Error DependencyGraph::TravelExports(std::string const& _name, fs::path const& _
     
     for (auto& e : n.project->exports)
     {
-        fs::path p = _root / _name / e;
+        fs::path p = _root / "src" / _name / e;
         if (FileHelper::IsDir(p) == false)
             return Error::Io("directory '" + p.string() + "' doesn't exist");
         

@@ -17,6 +17,8 @@ namespace CommandTable
                         "the compiler toolset (default: v143)" },
                     { "cpp-standard", '\0', CommandValueType::String, false, false, {},
                         "the C++ language standard (default: 20)" },
+                    { "platform", '\0', CommandValueType::List, false, false, {},
+                        "the target platform(s), comma-separated (default: x64)" },
                     { "force", '\0', CommandValueType::Flag, false, false, {},
                         "overwrite an existing solution.json"}
             },

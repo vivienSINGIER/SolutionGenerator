@@ -23,7 +23,7 @@ public:
     std::string startProject;
     
     std::vector<std::string> configs;
-    std::string platform;
+    std::vector<std::string> platforms;
     std::string toolset;
     std::string cppStandard;
     
@@ -33,8 +33,7 @@ public:
     bool warningsAsErrors;
     
     std::vector<std::string> defines;
-    std::vector<std::string> includeDirs;
-    
+
     std::map<std::string, ConfigOverride> configOverrides;
     
     std::vector<ProjectDesc> projects;

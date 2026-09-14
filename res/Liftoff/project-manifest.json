@@ -8,7 +8,6 @@
   "exports": ["."],
 
   "defines": ["GAME_INTERNAL"],
-  "includeDirs": [],
   "exclude": ["experimental/**"],
 
   "vendor": {

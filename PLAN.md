@@ -122,7 +122,7 @@ commit or resolve in a merge.
 
   "characterSet": "Unicode",
   "conformanceMode": true,
-  "warningLevel": "W4",
+  "warningLevel": "Level4",
   "warningsAsErrors": false,
 
   "defines": [],
@@ -150,7 +150,7 @@ commit or resolve in a merge.
 | `cppStandard` | `"20"` | `LanguageStandard` → `stdcpp20`; also `14` `17` `23` `latest` |
 | `characterSet` | `"Unicode"` | `Unicode` or `MultiByte` |
 | `conformanceMode` | `true` | `/permissive-` — enforce standard C++ |
-| `warningLevel` | `"W4"` | `/W0`..`/W4` |
+| `warningLevel` | `"Level4"` | `TurnOffAllWarnings`, `Level1`..`Level4` |
 | `warningsAsErrors` | `false` | `/WX` |
 | `defines` | `[]` | preprocessor defines added to every project |
 | `includeDirs` | `[]` | include dirs added to every project |

@@ -35,7 +35,6 @@ Error ProjectManifest::Serialize(fs::path const& _configPath)
     c["exports"] = exports;
 
     c["defines"] = defines;
-    c["includeDirs"] = includeDirs;
     c["exclude"] = exclude;
 
     c["vendor"] = js::object();
@@ -64,8 +63,6 @@ Error ProjectManifest::Serialize(fs::path const& _configPath)
             c["configOverrides"][config]["conformanceMode"] = override.conformanceMode;
         if (override.overrides[3])
             c["configOverrides"][config]["defines"] = override.defines;
-        if (override.overrides[4])
-            c["configOverrides"][config]["includeDirs"] = override.includeDirs;
     }
 
     return FileHelper::WriteFileAtomic(_configPath, c.dump(4));
@@ -109,7 +106,6 @@ Error ProjectManifest::Deserialize(fs::path const& _configPath)
     ReadRequired(j, "name",         name,         err);
     ReadRequired(j, "dependencies", dependencies, err);
     ReadRequired(j, "defines",      defines,      err);
-    ReadRequired(j, "includeDirs",  includeDirs,  err);
 
     if (ReadRequired(j, "kind", kind, err) && !IsValidKind(kind))
         err.details.push_back("invalid project kind '" + kind + "'. " + KIND_HINT);
@@ -161,11 +157,6 @@ Error ProjectManifest::Deserialize(fs::path const& _configPath)
             {
                 o.defines = settings["defines"];
                 o.overrides[3] = true;
-            }
-            if (settings.contains("includeDirs"))
-            {
-                o.includeDirs = settings["includeDirs"];
-                o.overrides[4] = true;
             }
 
             configOverrides[configName] = o;

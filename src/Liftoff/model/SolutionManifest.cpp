@@ -6,11 +6,11 @@ using Manifest::ReadRequired;
 using Manifest::ReadOptional;
 
 constexpr std::string_view validConfigurations[] =   { "Debug", "Release" };
-constexpr std::string_view validPlatforms[] =        { "x64" };
+constexpr std::string_view validPlatforms[] =        { "x64", "Win32" };
 constexpr std::string_view validToolsets[] =         { "v143" };
 constexpr std::string_view validCppStandards[] =      { "20", "17", "14"};
 constexpr std::string_view validCharacterSet[] =     { "UTF-8", "Unicode" };
-constexpr std::string_view validWarningLvl[] =       { "W4", "W3", "W2", "W1", "W0" };
+constexpr std::string_view validWarningLvl[] =       { "Level4", "Level3", "Level2", "Level1", "TurnOffAllWarnings" };
 
 SolutionManifest::SolutionManifest()
 {
@@ -20,13 +20,13 @@ SolutionManifest::SolutionManifest()
     startProject = "";
     
     configs = { "Debug", "Release" };
-    platform = "x64";
+    platforms = { "x64" };
     toolset = "v143";
     cppStandard = "20";
     
     characterSet = "Unicode";
     conformanceMode = true;
-    warningLvl = "W4";
+    warningLvl = "Level4";
     warningsAsErrors = false;
 }
 
@@ -43,7 +43,7 @@ Error SolutionManifest::Serialize(fs::path const& _manifestPath)
     c["startProject"] = startProject;
     
     c["configs"] = configs;
-    c["platform"] = platform;
+    c["platforms"] = platforms;
     c["toolset"] = toolset;
     c["cppStandard"] = cppStandard;
     
@@ -53,8 +53,7 @@ Error SolutionManifest::Serialize(fs::path const& _manifestPath)
     c["warningsAsErrors"] = warningsAsErrors;
     
     c["defines"] = defines;
-    c["includeDirs"] = includeDirs;
-    
+
     c["configOverrides"] = js::object();
     for (auto const& pair : configOverrides)
     {
@@ -69,10 +68,8 @@ Error SolutionManifest::Serialize(fs::path const& _manifestPath)
             c["configOverrides"][config]["conformanceMode"] = override.conformanceMode;
         if (override.overrides[3])
             c["configOverrides"][config]["defines"] = override.defines;
-        if (override.overrides[4])
-            c["configOverrides"][config]["includeDirs"] = override.includeDirs;
     }
-    
+
     c["projects"] = js::array();
     for (auto const& p : projects)
         c["projects"].push_back({ {"name", p.name}, {"group", p.group} });
@@ -119,7 +116,7 @@ Error SolutionManifest::Deserialize(fs::path const& _configPath)
 
     ReadRequired(j, "name",             name,             err);
     ReadRequired(j, "configs",          configs,          err);
-    ReadRequired(j, "platform",         platform,         err);
+    ReadRequired(j, "platforms",        platforms,        err);
     ReadRequired(j, "toolset",          toolset,          err);
     ReadRequired(j, "cppStandard",      cppStandard,      err);
     ReadRequired(j, "characterSet",     characterSet,     err);
@@ -127,7 +124,6 @@ Error SolutionManifest::Deserialize(fs::path const& _configPath)
     ReadRequired(j, "warningLevel",     warningLvl,       err);
     ReadRequired(j, "warningsAsErrors", warningsAsErrors, err);
     ReadRequired(j, "defines",          defines,          err);
-    ReadRequired(j, "includeDirs",      includeDirs,      err);
 
     ReadOptional(j, "startProject", startProject);
 
@@ -162,12 +158,7 @@ Error SolutionManifest::Deserialize(fs::path const& _configPath)
                 o.defines = settings["defines"];
                 o.overrides[3] = true;
             }
-            if (settings.contains("includeDirs"))
-            {
-                o.includeDirs = settings["includeDirs"];
-                o.overrides[4] = true;
-            }
-            
+
             configOverrides[configName] = o;
         }
     }
@@ -217,9 +208,13 @@ Error SolutionManifest::ValidateManifest()
     if (Error e = ValidateValues(validCharacterSet, characterSet, "characterSet"))
         err.details.push_back(e.Format());
     
-    if (Error e = ValidateValues(validPlatforms, platform, "platform"))
-        err.details.push_back(e.Format());
-    
+    for (std::string& p : platforms)
+    {
+        if (Error e = ValidateValues(validPlatforms, p, "platforms"))
+            err.details.push_back(e.Format());
+    }
+
+
     if (Error e = ValidateValues(validToolsets, toolset, "toolset"))
         err.details.push_back(e.Format());
     

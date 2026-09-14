@@ -43,10 +43,10 @@ Spec references: `PLAN.md` (solution model, folder tree, manifest schema),
 
 ## Phase 4 — Source discovery
 
-- [ ] Glob `src/<name>/` for `*.c/cpp/cc/cxx/h/hpp/hxx/inl`
-- [ ] Apply `exclude` globs
-- [ ] Classify files: `ClCompile` / `ClInclude` / `ResourceCompile` (`.rc`) / `None`
-- [ ] Collect `res/<name>/` contents as non-building `None` items
+- [x] Glob `src/<name>/` for `*.c/cpp/cc/cxx/h/hpp/hxx/inl`
+- [x] Apply `exclude` globs
+- [x] Classify files: `ClCompile` / `ClInclude` / `ResourceCompile` (`.rc`) / `None`
+- [x] Collect `res/<name>/` contents as non-building `None` items
 
 ## Phase 5 — Generators
 

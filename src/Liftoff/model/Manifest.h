@@ -36,9 +36,8 @@ struct ConfigOverride
     bool conformanceMode = false;
     
     std::vector<std::string> defines;
-    std::vector<std::string> includeDirs;
-    
-    bool overrides[5] = { false, false, false, false, false };
+
+    bool overrides[4] = { false, false, false, false };
 };
 
 namespace Manifest

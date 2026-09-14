@@ -75,8 +75,12 @@ namespace
             
             sm.cppStandard = _args.Get("cpp-standard");
         }
-        
-        return Error::Ok();    
+        if (_args.Exists("platform"))
+        {
+            sm.platforms = _args.GetList("platform");
+        }
+
+        return Error::Ok();
     }
     
     Error CreateBats(fs::path const& _path, bool _isV)

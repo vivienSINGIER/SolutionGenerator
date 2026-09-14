@@ -5,17 +5,16 @@
   "startupProject": "Game",
 
   "configurations": ["Debug", "Release"],
-  "platform": "x64",
+  "platforms": ["x64"],
   "toolset": "v143",
   "cppStandard": "20",
 
   "characterSet": "Unicode",
   "conformanceMode": true,
-  "warningLevel": "W4",
+  "warningLevel": "Level4",
   "warningsAsErrors": false,
 
   "defines": [],
-  "includeDirs": [],
 
   "configOverrides": {
     "Release": { "warningsAsErrors": true }
