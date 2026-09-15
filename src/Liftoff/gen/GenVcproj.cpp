@@ -275,6 +275,20 @@ namespace
 
         return Tag("ClCompile", fields, 2, {});
     }
+    
+    std::string ItemDeffLink(SolutionManifest const& _s, ProjectManifest const& _p)
+    {
+        std::string subsystem = "";
+        if (_p.kind == "console")
+            subsystem = Tag("Subsystem", {"Console"});
+        else if (_p.kind == "window")
+            subsystem = Tag("Subsystem", {"Application"});
+        
+        std::string comDatFold = Tag("EnableCOMDATFolding", {"true"}, 0, {"Condition=\"'$(Configuration)'=='Release'\""});
+        std::string optRef = Tag("OptimizeReferences", {"true"}, 0, {"Condition=\"'$(Configuration)'=='Release'\""});
+        std::string genDebugInfo = Tag("GenerateDebugInformation", {"true"});
+        
+    }
 
 }
 
