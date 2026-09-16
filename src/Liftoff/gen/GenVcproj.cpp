@@ -202,22 +202,22 @@ namespace
         return out;
     }
     
+    void AddRootRelative(fs::path const& _dir, std::vector<std::string>& _out)
+    {
+        _out.push_back("$(SolutionDir)..\\" + FileHelper::ToBackSlashes(_dir));
+    }
+    
     std::string GetIncludeDirs(ProjectManifest const& _p, ResolvedVendor const& _vendor,
                                 std::vector<fs::path> const& _exports, fs::path const& _root)
     {
         std::vector<std::string> dirs;
 
-        auto addRootRelative = [&](fs::path const& _dir)
-        {
-            dirs.push_back("$(SolutionDir)..\\" + FileHelper::ToBackSlashes(_dir));
-        };
-
-        addRootRelative(fs::path("src") / _p.name);
+        AddRootRelative(fs::path("src") / _p.name, dirs);
 
         for (auto const& dir : _exports)
-            addRootRelative(fs::relative(dir, _root));
+            AddRootRelative(fs::relative(dir, _root), dirs);
         for (auto const& dir : _vendor.includeDirs)
-            addRootRelative(fs::relative(dir, _root));
+            AddRootRelative(fs::relative(dir, _root), dirs);
 
         std::string out;
         for (auto const& dir : dirs)
@@ -276,7 +276,7 @@ namespace
         return Tag("ClCompile", fields, 2, {});
     }
     
-    std::string ItemDeffLink(SolutionManifest const& _s, ProjectManifest const& _p)
+    std::string ItemDeffLink(SolutionManifest const& _s, ProjectManifest const& _p, ResolvedVendor const& _vendor)
     {
         std::string subsystem = "";
         if (_p.kind == "console")
@@ -288,6 +288,21 @@ namespace
         std::string optRef = Tag("OptimizeReferences", {"true"}, 0, {"Condition=\"'$(Configuration)'=='Release'\""});
         std::string genDebugInfo = Tag("GenerateDebugInformation", {"true"});
         
+        std::string addLibDirV = "";
+        for (auto const& c : _vendor.libDirs)
+            addLibDirV += c.second.string() + ";";
+        addLibDirV += "%(AdditionalLibraryDirectories)";
+        
+        std::string addLibDirD = Tag("AdditionalLibraryDirectories", {addLibDirV}, 0, { "Condition=\"'$(Configuration)'=='Debug'\""});
+        std::string addLibDirR = Tag("AdditionalLibraryDirectories", {addLibDirV}, 0, { "Condition=\"'$(Configuration)'=='Release'\""});
+        
+        std::string addDepV = "";
+        for (auto const& c : _vendor.libs)
+            addDepV += c + ";";
+        addDepV += "%(AdditionalDependencies)";
+        
+        std::string addDepD = Tag("AdditionalDependencies", {addDepV}, 0, { "Condition=\"'$(Configuration)'=='Debug'\""});
+        std::string addDepR = Tag("AdditionalDependencies", {addDepV}, 0, { "Condition=\"'$(Configuration)'=='Release'\""});
     }
 
 }
