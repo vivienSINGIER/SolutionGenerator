@@ -4,39 +4,13 @@
 #include "commands/Command.h"
 #include "graph/DependencyGraph.h"
 #include "io/FileHelper.h"
+#include "scan/SourceDiscovery.h"
 
 namespace
 {
-    std::string Braced(std::string const& _guid)
-    {
-        return "{" + _guid + "}";
-    }
-    
-    std::string Tag(std::string const& _tag, std::vector<std::string> const& _values, int _indentCount = 0, std::vector<std::string> const& _tagArgs = {})
-    {
-        std::string out;
-        std::string indent;
-        
-        for (int i = 0; i < _indentCount; i++)
-            indent += "    ";
-        out += indent + "<" + _tag;
-        
-        for (auto const& v : _tagArgs)
-            out += " " + v;
-        out += ">";
-        
-        if (_values.size() > 1)
-        {
-            out += "\n";
-            for (auto const& v : _values)
-                out += indent + "    " + v + "\n";
-        }
-        else if (_values.size() == 1)
-            out += _values[0];
-        out += "</" + _tag + ">\n";
-        return out;
-    }
-    
+    using Gen::Braced;
+    using Gen::Tag;
+
     std::string Header()
     {
         std::string out;
@@ -92,7 +66,7 @@ namespace
         std::string indent = "    ";
         
         std::string out = indent + "<Import Project=\"$(VCTargetsPath)\\Microsoft.Cpp.Default.props\" />\n";
-        out += Tag("PropertyGroup", {type, useDebugD, useDebugR, toolset, opti, charSet}, 1, {"Label=\"" + std::string("Configuation") + "\""});
+        out += Tag("PropertyGroup", {type, useDebugD, useDebugR, toolset, opti, charSet}, 1, {"Label=\"" + std::string("Configuration") + "\""});
         out += indent + "<Import Project=\"$(VCTargetsPath)\\Microsoft.Cpp.props\" />\n";
         out += indent + "<ImportGroup Label=\"ExtensionSettings\" />\n";
         out += indent + "<ImportGroup Label=\"PropertySheets\">\n";
@@ -202,22 +176,19 @@ namespace
         return out;
     }
     
-    void AddRootRelative(fs::path const& _dir, std::vector<std::string>& _out)
-    {
-        _out.push_back("$(SolutionDir)..\\" + FileHelper::ToBackSlashes(_dir));
-    }
-    
+    using Gen::AddRootRelative;
+
     std::string GetIncludeDirs(ProjectManifest const& _p, ResolvedVendor const& _vendor,
                                 std::vector<fs::path> const& _exports, fs::path const& _root)
     {
         std::vector<std::string> dirs;
 
-        AddRootRelative(fs::path("src") / _p.name, dirs);
+        dirs.push_back(AddRootRelative(fs::path("src") / _p.name));
 
         for (auto const& dir : _exports)
-            AddRootRelative(fs::relative(dir, _root), dirs);
+            dirs.push_back(AddRootRelative(fs::relative(dir, _root)));
         for (auto const& dir : _vendor.includeDirs)
-            AddRootRelative(fs::relative(dir, _root), dirs);
+            dirs.push_back(AddRootRelative(fs::relative(dir, _root)));
 
         std::string out;
         for (auto const& dir : dirs)
@@ -273,10 +244,10 @@ namespace
         fields.push_back(pchState);
         fields.push_back(includeDirs);
 
-        return Tag("ClCompile", fields, 2, {});
+        return Tag("ClCompile", fields, 0, {});
     }
     
-    std::string ItemDeffLink(SolutionManifest const& _s, ProjectManifest const& _p, ResolvedVendor const& _vendor)
+    std::string ItemDeffLink(Workspace& _w, ProjectManifest const& _p, ResolvedVendor const& _vendor)
     {
         std::string subsystem = "";
         if (_p.kind == "console")
@@ -289,31 +260,111 @@ namespace
         std::string genDebugInfo = Tag("GenerateDebugInformation", {"true"});
         
         std::string addLibDirV = "";
+        std::string addDepV = "";
+        for (auto const& d : _p.dependencies)
+        {
+            ProjectManifest depM;
+            if (Error e = _w.GetProjectManifest(d, depM))
+                continue;
+            
+            if (depM.kind == "console" || depM.kind == "window")
+                continue;
+            
+            std::string ext = ".lib";
+            if (depM.kind == "dynamiclib")
+                ext = ".dll";
+            
+            addLibDirV += "$(SolutionDir)" + _p.name + "\\$(Platform)\\$(Configuration);";
+            addDepV += depM.name + ext + ";";
+        }
+        
         for (auto const& c : _vendor.libDirs)
-            addLibDirV += c.second.string() + ";";
+            addLibDirV += AddRootRelative(c.second.string()) + ";";
         addLibDirV += "%(AdditionalLibraryDirectories)";
+        
+        for (auto const& c : _vendor.libs)
+            addDepV += AddRootRelative(c) + ";";
+        addDepV += "%(AdditionalDependencies)";
         
         std::string addLibDirD = Tag("AdditionalLibraryDirectories", {addLibDirV}, 0, { "Condition=\"'$(Configuration)'=='Debug'\""});
         std::string addLibDirR = Tag("AdditionalLibraryDirectories", {addLibDirV}, 0, { "Condition=\"'$(Configuration)'=='Release'\""});
         
-        std::string addDepV = "";
-        for (auto const& c : _vendor.libs)
-            addDepV += c + ";";
-        addDepV += "%(AdditionalDependencies)";
-        
         std::string addDepD = Tag("AdditionalDependencies", {addDepV}, 0, { "Condition=\"'$(Configuration)'=='Debug'\""});
         std::string addDepR = Tag("AdditionalDependencies", {addDepV}, 0, { "Condition=\"'$(Configuration)'=='Release'\""});
+        
+        return Tag("Link", {subsystem, comDatFold, optRef, genDebugInfo, addLibDirD, addLibDirR, addDepD, addDepR});
+    }
+    
+    std::string ItemGrpClInclude(std::vector<fs::path> const& _includes)
+    {
+        std::vector<std::string> values;
+        
+        for (auto const& i : _includes)
+            values.push_back("<ClInclude Include=\"" + AddRootRelative(i) + "\"/>");
+        
+        return Tag("ItemGroup", values, 1, {});
+    }
+    
+    std::string ItemGrpClCompile(std::vector<fs::path> const& _compiles)
+    {
+        std::vector<std::string> values;
+        
+        for (auto const& i : _compiles)
+            values.push_back("<ClCompile Include=\"" + AddRootRelative(i) + "\"/>");
+        
+        return Tag("ItemGroup", values, 1, {});
+    }
+    
+    std::string ItemGrpNone(std::vector<fs::path> const& _nones, std::vector<fs::path> const& _res)
+    {
+        std::vector<std::string> values;
+        for (auto const& i : _nones)
+            values.push_back("<None Include=\"" + AddRootRelative(i) + "\"/>");
+        for (auto const& i : _res)
+            values.push_back("<None Include=\"" + AddRootRelative(i) + "\"/>");
+        
+        return Tag("ItemGroup", values, 1, {});
+    }
+    
+    std::string ResourceCompile(std::vector<fs::path> const& _resCompiles)
+    {
+        std::vector<std::string> values;
+        for (auto const& i : _resCompiles)
+            values.push_back("<ResourceCompile Include=\"" + AddRootRelative(i) + "\"/>");
+        return Tag("ItemGroup", values, 1, {});
+    }
+    
+    std::string ProjectReferences(SolutionManifest const& _s, ProjectManifest const& _p)
+    {
+        std::vector<std::string> values;
+        
+        for (auto const& d : _p.dependencies)
+        {
+            std::string guid = Tag("Project", {Braced( GUID::GenerateGuid(_s.name, d)) });
+            std::string path = "\"$(SolutionDir)\\" + d + "\\" + d + ".vcxproj\"";
+            values.push_back(Tag("ProjectReferences", {guid}, 0, { "Include=" + path }));
+        }
+        
+        return Tag("ItemGroup", values, 0, {});
+    }
+    
+    std::string Footer()
+    {
+        std::string out = "    <Import Project=\"$(VCTargetsPath)\\Microsoft.Cpp.targets\" />\n";
+        out += "    <ImportGroup Label=\"ExtensionTargets\" />\n";
+        out += "</Project>\n";
+        return out;
     }
 
 }
 
-Error Gen::GenVcProj(SolutionManifest const& _solution, ProjectManifest const& _project,
+Error Gen::GenVcProj(Workspace& _workspace, SolutionManifest const& _solution, ProjectManifest const& _project,
                       DependencyGraph& _graph, fs::path const& _path)
 {
     fs::path root;
     if (Error e = Cmd::GetRootPath(root))
         return e;
-
+    
     ResolvedVendor vendor;
     if (Error e = _graph.ResolveVendor(_project.name, vendor))
         return e;
@@ -322,13 +373,29 @@ Error Gen::GenVcProj(SolutionManifest const& _solution, ProjectManifest const& _
     if (Error e = _graph.ResolveExports(_project.name, exports))
         return e;
 
+    ProjectFiles dis;
+    if (Error e = Discovery::RunDiscovery(root / "src" / _project.name, root / "res" / _project.name, _project, dis))
+        return e;
+    
     std::string content = Header();
     content += ProjectConfigurations(_solution);
     content += Globals(_solution, _project);
     content += Configuration(_solution, _project);
     content += OutDirs();
     content += Vcpkg(_project);
-    content += Tag("ItemDefinitionGroup", { ItemDeffClCompile(_solution, _project, vendor, exports, root) }, 1, {});
+    content += Tag("ItemDefinitionGroup", { ItemDeffClCompile(_solution, _project, vendor, exports, root),
+                                                             ItemDeffLink(_workspace, _project, vendor)}, 1, {});
+    content += ItemGrpClInclude(dis.clIncludeFiles);
+    content += ItemGrpClCompile(dis.clCompileFiles);
+    content += ItemGrpNone(dis.noneFiles, dis.resFiles);
+    content += ResourceCompile(dis.resourcesCompileFiles);
+    content += ProjectReferences(_solution, _project);
+    content += Footer();
 
-    return FileHelper::WriteFileAtomic(_path, content);
+    if (Error e = FileHelper::WriteFileAtomic(_path, content))
+        return e;
+
+    fs::path filtersPath = _path;
+    filtersPath += ".filters";
+    return Gen::GenFilters(_solution, _project, dis, filtersPath);
 }

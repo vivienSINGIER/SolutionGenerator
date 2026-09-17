@@ -110,7 +110,7 @@ namespace
 
 Error Discovery::RunDiscovery(fs::path const& _src, fs::path const& _res, ProjectManifest const& _manifest, ProjectFiles& _out)
 {
-    if (Error e = GetSourceFiles(_src, _manifest, _out))
+    if (Error e = GetSourceFiles(_src, _out))
         return e;
     if (Error e = ApplyExcludes(_manifest.exclude, _out))
         return e;
@@ -120,7 +120,7 @@ Error Discovery::RunDiscovery(fs::path const& _src, fs::path const& _res, Projec
     return Error::Ok();
 }
 
-Error Discovery::GetSourceFiles(fs::path const& _src, ProjectManifest const& _manifest, ProjectFiles& _out)
+Error Discovery::GetSourceFiles(fs::path const& _src, ProjectFiles& _out)
 {
     if (FileHelper::IsDir(_src) == false)
         return Error::Io("couldn't find source directory '" + _src.string() + "'");

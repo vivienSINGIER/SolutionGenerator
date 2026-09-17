@@ -9,20 +9,20 @@
 
 namespace fs = std::filesystem;
 
+struct ProjectFiles
+{
+    std::vector<fs::path> clCompileFiles;
+    std::vector<fs::path> clIncludeFiles;
+    std::vector<fs::path> resourcesCompileFiles;
+    std::vector<fs::path> noneFiles;
+    std::vector<fs::path> resFiles;
+};
+
 namespace Discovery
 {
-    struct ProjectFiles
-    {
-        std::vector<fs::path> clCompileFiles;
-        std::vector<fs::path> clIncludeFiles;
-        std::vector<fs::path> resourcesCompileFiles;
-        std::vector<fs::path> noneFiles;
-        std::vector<fs::path> resFiles;
-    };
-    
     Error RunDiscovery(fs::path const& _src, fs::path const& _res, ProjectManifest const& _manifest, ProjectFiles& _out);
     
-    Error GetSourceFiles(fs::path const& _src, ProjectManifest const& _manifest, ProjectFiles& _out);
+    Error GetSourceFiles(fs::path const& _src, ProjectFiles& _out);
     void ClassifyFile(ProjectFiles& _out, fs::path const& _file);
     Error ApplyExcludes(std::vector<std::string> _excludes, ProjectFiles& _out);
     Error GetResFiles(fs::path const& _res, ProjectFiles& _out);
