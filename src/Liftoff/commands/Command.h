@@ -34,6 +34,8 @@ namespace Cmd
     Error DepList(Workspace& _ws, Invocation const& _inv);
     
     Error SyncBats(Workspace& _ws, Invocation const& _inv);
+    
+    Error Make(Workspace& _ws, Invocation const& _inv);
 }
 
 #endif
