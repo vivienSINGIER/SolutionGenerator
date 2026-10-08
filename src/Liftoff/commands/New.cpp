@@ -7,8 +7,6 @@ namespace
     std::vector<std::pair<std::string, std::string>> bats =
         {
         {"make.bat", "../Liftoff.exe make"},
-        {"build.bat", "../Liftoff.exe build"},
-        {"rebuild.bat", "../Liftoff.exe rebuild"},
         {"clean.bat", "../Liftoff.exe clean"},
         {"clear.bat", "../Liftoff.exe clear"},
     };

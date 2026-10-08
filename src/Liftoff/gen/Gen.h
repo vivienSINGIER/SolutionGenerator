@@ -16,11 +16,19 @@ namespace Gen
                         DependencyGraph& _graph, fs::path const& _path);
     Error GenFilters(SolutionManifest const& _solution, ProjectManifest const& _project,
                         ProjectFiles const& _files, fs::path const& _path);
-
-    // Shared XML-fragment helpers used across the vcxproj/filters generators.
+    
     std::string Braced(std::string const& _guid);
-    std::string Tag(std::string const& _tag, std::vector<std::string> const& _values,
-                        int _indentCount = 0, std::vector<std::string> const& _tagArgs = {});
+
+    // Prefixes every line of _block with _levels * 4 spaces. Used to nest an
+    // already-rendered (possibly multi-line) child one level deeper than its
+    // parent tag, without either side needing to know the absolute depth.
+    std::string Indent(std::string const& _block, int _levels = 1);
+
+    // Renders <_tag _tagArgs...>_values...</_tag>, one _values entry per
+    // line, each indented one level deeper than _tag itself. Self-closes
+    // (<_tag _tagArgs.../>) when _values is empty.
+    std::string Tag(std::string const& _tag, std::vector<std::string> const& _values = {},
+                        std::vector<std::string> const& _tagArgs = {});
     std::string AddRootRelative(fs::path const& _dir);
 }
 

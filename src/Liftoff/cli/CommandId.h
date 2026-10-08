@@ -9,7 +9,7 @@ enum class CommandId
     DepAdd, DepRemove, DepList,
     VendorAdd, VendorRemove, VendorList,
     Set, SyncBats,
-    Make, Build, Run, Clean, Clear, Rebuild,
+    Make, Clean, Clear,
 };
 
 #endif

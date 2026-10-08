@@ -116,12 +116,12 @@ them identically.
 |---|---|---|
 | `name` | `std::string` | key in the `ArgBag`: `"name"`, `"config"` |
 | `type` | `CommandValueType` | `Flag` is meaningless here; usually `String` / `Path` / `Enum` |
-| `required` | `bool` | `false` → optional trailing slot (`build [config]`) |
+| `required` | `bool` | `false` → optional trailing slot |
 | `enumValues` | `std::vector<std::string>` | allowed values when `type == Enum` (mirrors `OptionSpec`) |
 | `help` | `std::string` | one line |
 
-The only enum positionals in v1 are the `config` slots of `build` / `rebuild`
-(`Debug|Release|all`) and `run` (`Debug|Release`).
+There are no enum positionals in v1 (the `config` slot of the deferred `build` /
+`rebuild` / `run` commands would be the first).
 
 Positional order in the vector **is** the argument order on the command line.
 No variadic positional in v1 (every command has a fixed count — see `CLI_SPEC.md`).
@@ -149,7 +149,7 @@ enum class CommandId
     DepAdd, DepRemove, DepList,
     VendorAdd, VendorRemove, VendorList,
     Set, SyncBats,
-    Make, Build, Run, Clean, Clear, Rebuild,
+    Make, Clean, Clear,
 };
 ```
 
@@ -191,11 +191,10 @@ static CommandSpec const kTable[] =
       },
       "create a project: folders, manifest, solution entry, wrappers" },
 
-    { CommandId::Build, "build",
-      { { "config", ValueKind::Enum, /*required*/ false, "Debug|Release|all" } },
-      { { "only", 0, ValueKind::List, false, false, {}, "restrict to these projects" },
-        { "msbuild", 0, ValueKind::Path, false, false, {}, "explicit MSBuild.exe" } },
-      "make, then run MSBuild" },
+    { CommandId::Make, "make",
+      {},
+      { { "only", 0, ValueKind::List, false, false, {}, "restrict to these projects" } },
+      "generate the solution and project files" },
 
     // ... one entry per row of CLI_SPEC.md's command index
 };
@@ -282,7 +281,7 @@ private:
 - Repeatable option → `Add` once per occurrence; handler calls `GetList`.
 - `List` option → parser comma-splits, `Add` per piece; handler calls `GetList`.
 - Scalar option / positional → single `Add`; handler calls `GetString` / `GetPath`
-  (required) or `GetOptional` (optional positional like `build`'s `config`).
+  (required) or `GetOptional` (optional positional).
 
 ### 3.11 `Invocation` — `cli/Invocation.h`
 
@@ -471,7 +470,7 @@ Error Dispatch(Invocation const& _inv)
     switch (_inv.id)
     {
     case CommandId::ProjectAdd: return Cmd::ProjectAdd(_inv.global, _inv.args);
-    case CommandId::Build:      return Cmd::Build(_inv.global, _inv.args);
+    case CommandId::Make:       return Cmd::Make(_inv.global, _inv.args);
     // ... one line per CommandId
     case CommandId::None:       return Error::Ok();       // unreachable: done was set
     }
@@ -562,19 +561,18 @@ src/SolutionGenerator/cli/
 Handler unpacks `name="Engine"`, `kind="staticlib"`, `dependsOn=["Core","Math"]`,
 `noScaffold=false`; `_g.dryRun` true → prints the file plan, writes nothing.
 
-### 9.2 `solgen build Release --only Engine,Game`
+### 9.2 `solgen make --only Engine,Game`
 
 | step | result |
 |---|---|
-| 0 | `tokens = [build, Release, --only, Engine,Game]` |
+| 0 | `tokens = [make, --only, Engine,Game]` |
 | 1–2 | no globals; not version |
-| 3 | `build` is a flat verb → `spec = "build"`, consume 1; `tokens = [Release, --only, Engine,Game]` |
+| 3 | `make` is a flat verb → `spec = "make"`, consume 1; `tokens = [--only, Engine,Game]` |
 | 4 | not help |
-| 5 | `Release` → positional. `--only` is `List` → comma-split → `bag[only]=[Engine,Game]`. bind positional `config` ← `Release`, enum ok → `bag[config]=[Release]`. |
-| 6 | `Invocation{ id: Build, global:{}, args:{ config:[Release], only:[Engine,Game] } }` |
+| 5 | `--only` is `List` → comma-split → `bag[only]=[Engine,Game]`. `make` has no positionals. |
+| 6 | `Invocation{ id: Make, global:{}, args:{ only:[Engine,Game] } }` |
 
-Handler: `config = _args.GetOptional("config").value_or("Debug")` → `"Release"`;
-`only = _args.GetList("only")` → `["Engine","Game"]`.
+Handler: `only = _args.GetList("only")` → `["Engine","Game"]`.
 
 ### 9.3 Error case — `solgen project add --kind statlib`
 
@@ -614,7 +612,7 @@ Bottom-up. Every step compiles and is checkable on its own before the next. Step
 
 ### Phase A — result types (leaf, no dependencies)
 
-- [x] **1. `cli/CommandId.h`** — the `enum class CommandId` (all 17 + `None`).
+- [x] **1. `cli/CommandId.h`** — the `enum class CommandId` (all 14 + `None`).
       Nothing depends on anything. Compiles.
 - [x] **2. `cli/GlobalFlags.h`** — the struct (`dryRun`, `yes`, `verbose`,
       `configPath`). Compiles.
@@ -655,7 +653,7 @@ don't change afterward.
       _Check:_ `solgen make` and `solgen project add` resolve; `solgen bogus`
       errors, exit 1.
 - [x] **10. Stage [5] — `BindArgs` + `ArgReader`.** Build it up in sub-steps, each
-      verified against the `project add` / `build` specs:
+      verified against the `project add` / `make` specs:
   - [x] 10a. positionals only → `bag["name"]` from `solgen project add Engine`
   - [x] 10b. `Flag` options → `--no-scaffold`
   - [x] 10c. value options, both `--kind x` and `--kind=x`
@@ -672,14 +670,14 @@ don't change afterward.
 
 ### Phase D — fill out
 
-- [x] **12. Complete `CommandTable.cpp`** — all 17 commands from `CLI_SPEC.md`'s
+- [x] **12. Complete `CommandTable.cpp`** — all 14 commands from `CLI_SPEC.md`'s
       command index, every positional and option. No new logic.
 - [x] **13. `cli/Help.{h,cpp}`** — `General()` (banner + command index from
       `CommandTable::All`), `Group(noun)`, `Command(spec)` (usage line built from
       the spec + the global-flags list). Replace the step-7 placeholder; wire the
       `m_wantHelp` short-circuits inside stage [3] (general / group) and at
       stage [4] (per-command).
-      _Check:_ `solgen --help`, `solgen project --help`, `solgen build --help`.
+      _Check:_ `solgen --help`, `solgen project --help`, `solgen make --help`.
 
 ### Phase E — the dispatch seam (`TASKS.md` "Command dispatch table")
 
@@ -687,7 +685,7 @@ don't change afterward.
       `return Error::Validation("not implemented: <path>")` for now. Wire into
       `main` after `Cli::Parse`.
       _Milestone:_ every command in `CLI_SPEC.md` now parses, validates its shape,
-      and routes. `solgen build Release --only A,B` → "not implemented: build",
+      and routes. `solgen make --only A,B` → "not implemented: make",
       exit 1. The CLI shell is complete; handlers (Phase 9) fill the arms in.
 
 ### What "done" looks like

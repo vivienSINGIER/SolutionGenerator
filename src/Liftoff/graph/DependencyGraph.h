@@ -15,8 +15,9 @@ struct ResolvedVendor
 class DependencyGraph
 {
 public:
-    DependencyGraph(std::vector<ProjectManifest> const& _projects);
+    DependencyGraph() = default;
 
+    Error BuildGraph(std::vector<ProjectManifest> const& _projects);
     Error ValidateGraph();
     Error ResolveExports(std::string _pName, std::vector<fs::path>& _exports);
     Error ResolveVendor(std::string _pName, ResolvedVendor& _out);
@@ -33,7 +34,6 @@ private:
     std::unordered_map<std::string, Node> m_graph;
     std::vector<std::string> m_path;
     
-    Error BuildGraph();
     Error HasLoops();
     
     Error Visit(std::string _name);

@@ -7,30 +7,23 @@ namespace
     std::vector<std::pair<std::string, std::string>> fixedBats =
     {
         {"make.bat",    "../Liftoff.exe make"},
-        {"build.bat",   "../Liftoff.exe build"},
-        {"rebuild.bat", "../Liftoff.exe rebuild"},
         {"clean.bat",   "../Liftoff.exe clean"},
         {"clear.bat",   "../Liftoff.exe clear"},
     };
 
     std::vector<std::pair<std::string, std::string>> ProjectBats(ProjectManifest const& _p)
     {
-        std::vector<std::pair<std::string, std::string>> bats =
+        return
         {
-            {_p.name + "-build.bat", "../Liftoff.exe build --only " + _p.name},
             {_p.name + "-make.bat",  "../Liftoff.exe make --only "  + _p.name},
         };
-        if (_p.kind == "console" || _p.kind == "window")
-            bats.push_back({_p.name + "-run.bat", "../Liftoff.exe run " + _p.name});
-
-        return bats;
     }
 
     bool Prompt(std::vector<ProjectManifest> const& _projects, bool _prompt)
     {
         std::vector<std::string> plan;
 
-        plan.push_back("Regenerate the fixed .bat helpers (make, build, rebuild, clean, clear)");
+        plan.push_back("Regenerate the fixed .bat helpers (make, clean, clear)");
 
         std::string perProject = "Regenerate the per-project .bat helpers :\n";
         for (ProjectManifest const& p : _projects)

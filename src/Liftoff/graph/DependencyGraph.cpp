@@ -3,9 +3,15 @@
 #include <algorithm>
 
 #include "commands/Command.h"
+#include "core/Logger.h"
 
 namespace
 {
+    void WarnVendor(std::string const& _msg)
+    {
+        Log::Log(LogType::Warning, "warning: " + _msg + '\n');
+    }
+
     template <typename T>
     void AppendUnique(std::vector<T>& _vec, T const& _value)
     {
@@ -14,8 +20,9 @@ namespace
     }
 }
 
-DependencyGraph::DependencyGraph(std::vector<ProjectManifest> const& _projects)
+Error DependencyGraph::BuildGraph(std::vector<ProjectManifest> const& _projects)
 {
+    m_graph.clear();
     m_graph.reserve(_projects.size());
     for (auto const& p : _projects)
     {
@@ -23,17 +30,14 @@ DependencyGraph::DependencyGraph(std::vector<ProjectManifest> const& _projects)
         n.project = &p;
         m_graph[p.name] = n;
     }
-}
 
-Error DependencyGraph::BuildGraph()
-{
     for (auto& n : m_graph)
     {
         for (std::string const& d : n.second.project->dependencies)
         {
             if (d == n.second.project->name)
                 return Error::Validation("invalid dependency list: project '" + d + "' cannot depend on itself");
-            
+
             auto it = m_graph.find(d);
             if (it == m_graph.end())
                 return Error::Validation("invalid dependency list: couldn't find project '" + d + "'");
@@ -48,16 +52,11 @@ Error DependencyGraph::BuildGraph()
 Error DependencyGraph::ValidateGraph()
 {
     for (auto& pair : m_graph)
-    {
-        pair.second.dependencies.clear();
         pair.second.state = NodeState::Unvisited;
-    }
 
-    if (Error e = BuildGraph())
-        return e;
     if (Error e = HasLoops())
         return e;
-    
+
     return Error::Ok();
 }
 
@@ -195,23 +194,34 @@ Error DependencyGraph::TravelVendor(std::string const& _name, fs::path const& _v
 
     for (auto const& [libName, v] : n.project->vendor)
     {
+        std::string where = "(project '" + _name + "', lib '" + libName + "')";
+
         for (auto const& inc : v.include)
         {
             fs::path p = _vendorRoot / inc;
             if (FileHelper::IsDir(p) == false)
-                return Error::Io("vendor include dir '" + p.string() + "' (project '" + _name + "', lib '" + libName + "') doesn't exist");
+            {
+                WarnVendor("vendor include dir '" + p.string() + "' " + where + " doesn't exist");
+                continue;
+            }
 
             AppendUnique(_out.includeDirs, p);
         }
-
-        for (auto const& lib : v.libs)
-            AppendUnique(_out.libs, lib);
 
         for (auto const& [config, dir] : v.libDirs)
         {
             fs::path p = _vendorRoot / dir;
             if (FileHelper::IsDir(p) == false)
-                return Error::Io("vendor lib dir '" + p.string() + "' (project '" + _name + "', lib '" + libName + "', config '" + config + "') doesn't exist");
+            {
+                WarnVendor("vendor lib dir '" + p.string() + "' " + where + ", config '" + config + "' doesn't exist");
+                continue;
+            }
+
+            for (auto const& lib : v.libs)
+            {
+                if (FileHelper::IsFile(p / lib) == false)
+                    WarnVendor("vendor lib '" + lib + "' " + where + " not found in '" + p.string() + "' (config '" + config + "')");
+            }
 
             auto it = _out.libDirs.find(config);
             if (it != _out.libDirs.end() && it->second != p)
@@ -220,11 +230,17 @@ Error DependencyGraph::TravelVendor(std::string const& _name, fs::path const& _v
             _out.libDirs[config] = p;
         }
 
+        for (auto const& lib : v.libs)
+            AppendUnique(_out.libs, lib);
+
         for (auto const& dll : v.dlls)
         {
             fs::path p = _vendorRoot / dll;
             if (FileHelper::IsFile(p) == false)
-                return Error::Io("vendor dll '" + p.string() + "' (project '" + _name + "', lib '" + libName + "') doesn't exist");
+            {
+                WarnVendor("vendor dll '" + p.string() + "' " + where + " doesn't exist");
+                continue;
+            }
 
             AppendUnique(_out.dlls, p);
         }

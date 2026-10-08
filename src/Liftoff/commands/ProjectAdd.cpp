@@ -15,7 +15,6 @@ namespace
     std::vector<std::pair<std::string, std::string>> bats =
     {
         {"-make.bat", "../Liftoff.exe make --only "},
-        {"-build.bat", "../Liftoff.exe build --only "},
     };
     
     Error CreateBats(fs::path const& _path, bool _isV)
@@ -116,9 +115,6 @@ Error Cmd::ProjectAdd(Workspace& _ws, Invocation const& _inv)
     }
     
     bool hasDefCpp = kind == "console" || kind == "window";
-    if (hasDefCpp)
-        bats.push_back({ name + "-run.bat", "../Liftoff.exe run " + name });
-    
     bool scaffold = true;
     if (bag.GetFlag("no-scaffold"))
         scaffold = false;
@@ -153,15 +149,16 @@ Error Cmd::ProjectAdd(Workspace& _ws, Invocation const& _inv)
                 return e;
             if (Error e = FileHelper::WriteFileAtomic(root / "src" / name / "main.cpp", main_cpp))
                 return e;
+            Verbose("Created 'main.h' & 'main.cpp' template files", isVerbose);
         }
-        else
+        else if (kind == "window")
         {
             if (Error e = FileHelper::WriteFileAtomic(root / "src" / name / "main.h", main_h))
                 return e;
             if (Error e = FileHelper::WriteFileAtomic(root / "src" / name / "main.cpp", wmain_cpp))
                 return e;
+            Verbose("Created 'main.h' & 'main.cpp' template files", isVerbose);
         }
-        Verbose("Created 'main.h' & 'main.cpp' template files", isVerbose);
 
         if (Error e = CreateBats(root / "tools" / "bats", isVerbose))
             return e;

@@ -15,14 +15,12 @@ Error Workspace::Load(fs::path const& _manifestPath)
             return e;
         m_projects.push_back(project);
     }
-    
-    return Error::Ok();
+
+    return m_depGraph.BuildGraph(m_projects);
 }
 
 Error Workspace::Save(fs::path const& _configPath)
 {
-    DependencyGraph g(m_projects);
-    
     for (ProjectDesc const& d : m_solution.projects)
     {
         bool found = false;
@@ -31,14 +29,16 @@ Error Workspace::Save(fs::path const& _configPath)
             if (p.name == d.name)
                 found = true;
         }
-        
+
         if (!found)
             return Error::Validation("project '" + d.name + "' not found");
     }
-    
-    if (Error e = g.ValidateGraph())
+
+    if (Error e = m_depGraph.BuildGraph(m_projects))
         return e;
-    
+    if (Error e = m_depGraph.ValidateGraph())
+        return e;
+
     if (Error e = m_solution.Serialize(_configPath / (m_solution.name + ".json")))
         return e;
     for (ProjectManifest& p : m_projects)
@@ -68,7 +68,7 @@ Error Workspace::AddProject(ProjectManifest _projectManifest)
     
     m_solution.projects.push_back(desc);
     m_projects.push_back(_projectManifest);
-    return Error::Ok();
+    return m_depGraph.BuildGraph(m_projects);
 }
 
 std::vector<ProjectManifest>& Workspace::GetProjects()
@@ -97,4 +97,9 @@ Error Workspace::GetProjectManifest(std::string_view _projectName, ProjectManife
     }
     
     return Error::Validation("no project of name '" + std::string(_projectName) + "' found");
+}
+
+DependencyGraph& Workspace::GetDependencyGraph()
+{
+    return m_depGraph;
 }

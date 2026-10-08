@@ -134,7 +134,7 @@ Error Discovery::GetSourceFiles(fs::path const& _src, ProjectFiles& _out)
         if (FileHelper::IsDir(d))
             continue;
         
-        fs::path p = fs::relative(d, _src);
+        fs::path p = fs::relative(d, _src.parent_path().parent_path());
         ClassifyFile(_out, p);
     }
     
@@ -193,7 +193,7 @@ Error Discovery::GetResFiles(fs::path const& _res, ProjectFiles& _out)
         if (FileHelper::IsDir(d))
             continue;
         
-        fs::path p = fs::relative(d, _res);
+        fs::path p = fs::relative(d, _res.parent_path().parent_path());
         _out.resFiles.push_back(p);
     }
     

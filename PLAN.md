@@ -2,7 +2,7 @@ Oh ok, # Solution Generator — Project Plan
 
 Working notes for the custom Solution Generator (`solgen`). `solgen` reads a set of
 JSON config files and emits the `.sln` / `.vcxproj` files for a solution, plus the
-helper scripts needed to build, clean, and run it.
+helper scripts needed to generate and clean it.
 
 Status: **planning**. Nothing here is final; sections marked _(later)_ are deferred.
 
@@ -25,8 +25,8 @@ MySolution/
   tools/
     solgen.exe         -> the generator (committed; self-copied here by `solgen new`)
     bat/               -> committed wrappers around `solgen <command>`
-      make.bat  build.bat  rebuild.bat  clean.bat  clear.bat  run.bat
-      Proj1.make.bat  Proj1.build.bat  Proj1.run.bat   -> per-project, scoped
+      make.bat  clean.bat  clear.bat
+      Proj1.make.bat   -> per-project, scoped
     config/
       solution.json    -> solution manifest (see section 3)
       projects/
@@ -113,7 +113,6 @@ commit or resolve in a merge.
   "schemaVersion": 1,
 
   "name": "MySolution",
-  "startupProject": "Game",
 
   "configurations": ["Debug", "Release"],
   "platform": "x64",
@@ -143,7 +142,6 @@ commit or resolve in a merge.
 |---|---|---|
 | `schemaVersion` | _(required)_ | manifest format version; bump on breaking schema changes |
 | `name` | _(required)_ | solution name; `.sln` filename |
-| `startupProject` | _(none)_ | project name `run` targets by default when more than one project is runnable |
 | `configurations` | `["Debug","Release"]` | build configurations to emit |
 | `platform` | `"x64"` | target platform |
 | `toolset` | `"v143"` | `PlatformToolset` |
@@ -252,7 +250,7 @@ project `config` override:
 Primary interaction is `solgen <command>`, with `tools/*.bat` as convenience
 wrappers. Full spec in `CLI_SPEC.md`. Hybrid grammar:
 
-- **flat lifecycle verbs** — `make`, `build`, `run`, `clean`, `clear`, `rebuild`
+- **flat lifecycle verbs** — `make`, `clean`, `clear`
 - **grouped setup nouns** (manifests are command-managed, not hand-edited) —
   `project add/remove/list/set`, `dep add/remove`, `vendor add/remove`, plus the
   flat `new` and `set`
@@ -272,13 +270,20 @@ wrappers. Full spec in `CLI_SPEC.md`. Hybrid grammar:
   authoritative from then on.
 - Generated folder is `.ide/`; `.gitignore` is the single line `.ide`.
 - `tools/solgen.exe` and `tools/bat/*.bat` are committed. A fresh clone needs no
-  extra step — `build` runs `make` first, which regenerates `.ide/`.
-- `.bat` wrappers live in `tools/bat/`: six general ones (`make`, `build`,
-  `rebuild`, `clean`, `clear`, `run`) plus per-project scoped ones added/removed
+  extra step — `make` regenerates `.ide/`.
+- `.bat` wrappers live in `tools/bat/`: three general ones (`make`,
+  `clean`, `clear`) plus per-project scoped ones added/removed
   with the project.
 
 ## 6. Open questions / deferred
 
+- `build [config] [--only]` — run `make` first, then invoke MSBuild (located via
+  `vswhere.exe`, `--msbuild <path>` override); exit `4` on failure.
+- `rebuild [config]` — `clean` followed by `build`.
+- `run [project] [config] [--detach]` — build, then launch the executable; needs a
+  `startupProject` solution field for the multi-runnable default. Also brings back
+  `build.bat`, `rebuild.bat`, `run.bat` and per-project `-build.bat` / `-run.bat`
+  wrappers.
 - Co-located `res/` (inside the project folder) as an alternative to the parallel
   tree.
 - Additional platforms beyond `x64`.

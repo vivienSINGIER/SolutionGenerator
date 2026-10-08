@@ -11,9 +11,24 @@ namespace
     using Gen::Braced;
     using Gen::Tag;
 
+    // Files are root-relative (src/<project>/a/b.cpp); the filter is the
+    // directory below src/<project>/ (or res/<project>/), so drop the first two parts.
+    fs::path FilterDir(fs::path const& _file)
+    {
+        fs::path out;
+        int index = 0;
+        for (auto const& part : _file.parent_path())
+        {
+            if (index++ < 2)
+                continue;
+            out /= part;
+        }
+        return out;
+    }
+
     std::string FilterOf(fs::path const& _file)
     {
-        return FileHelper::ToBackSlashes(_file.parent_path());
+        return FileHelper::ToBackSlashes(FilterDir(_file));
     }
 
     void CollectFilterDirs(std::vector<fs::path> const& _files, std::set<std::string>& _dirs)
@@ -21,7 +36,7 @@ namespace
         for (auto const& f : _files)
         {
             fs::path accum;
-            for (auto const& part : f.parent_path())
+            for (auto const& part : FilterDir(f))
             {
                 accum /= part;
                 _dirs.insert(FileHelper::ToBackSlashes(accum));
@@ -37,10 +52,10 @@ namespace
         {
             std::string guid = Braced(GUID::GenerateGuid(_s.name, _p.name + "|filter|" + dir));
             std::string uid = Tag("UniqueIdentifier", {guid});
-            values.push_back(Tag("Filter", {uid}, 0, {"Include=\"" + dir + "\""}));
+            values.push_back(Tag("Filter", {uid}, {"Include=\"" + dir + "\""}));
         }
 
-        return Tag("ItemGroup", values, 1, {});
+        return Tag("ItemGroup", values);
     }
 
     std::vector<std::string> FilterItemValues(std::string const& _tag, std::vector<fs::path> const& _files)
@@ -56,7 +71,7 @@ namespace
             if (!filter.empty())
                 children.push_back(Tag("Filter", {filter}));
 
-            values.push_back(Tag(_tag, children, 0, {"Include=\"" + include + "\""}));
+            values.push_back(Tag(_tag, children, {"Include=\"" + include + "\""}));
         }
 
         return values;
@@ -79,13 +94,15 @@ Error Gen::GenFilters(SolutionManifest const& _solution, ProjectManifest const& 
     otherItems.insert(otherItems.end(), noneItems.begin(), noneItems.end());
     otherItems.insert(otherItems.end(), resItems.begin(), resItems.end());
 
-    std::string content;
-    content += "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n";
+    std::string body;
+    body += FilterDeclarations(_solution, _project, dirs);
+    body += Tag("ItemGroup", FilterItemValues("ClCompile", _files.clCompileFiles));
+    body += Tag("ItemGroup", FilterItemValues("ClInclude", _files.clIncludeFiles));
+    body += Tag("ItemGroup", otherItems);
+
+    std::string content = "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n";
     content += "<Project ToolsVersion=\"4.0\" xmlns=\"http://schemas.microsoft.com/developer/msbuild/2003\">\n";
-    content += FilterDeclarations(_solution, _project, dirs);
-    content += Tag("ItemGroup", FilterItemValues("ClCompile", _files.clCompileFiles), 1, {});
-    content += Tag("ItemGroup", FilterItemValues("ClInclude", _files.clIncludeFiles), 1, {});
-    content += Tag("ItemGroup", otherItems, 1, {});
+    content += Gen::Indent(body);
     content += "</Project>\n";
 
     return FileHelper::WriteFileAtomic(_path, content);

@@ -2,6 +2,7 @@
 #define WORKSPACE_H_DEFINED
 
 #include "core/Error.h"
+#include "graph/DependencyGraph.h"
 #include "model/ProjectManifest.h"
 #include "model/SolutionManifest.h"
 
@@ -18,10 +19,13 @@ public:
     std::vector<ProjectManifest>& GetProjects();
     bool HasProject(std::string_view _projectName);
     Error GetProjectManifest(std::string_view _projectName, ProjectManifest& _out);
+
+    DependencyGraph& GetDependencyGraph();
     
 private:
     SolutionManifest m_solution;
     std::vector<ProjectManifest> m_projects;
+    DependencyGraph m_depGraph;
 };
 
 #endif

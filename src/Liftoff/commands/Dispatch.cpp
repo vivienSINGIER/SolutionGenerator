@@ -31,11 +31,11 @@ Error Cmd::Dispatch(Invocation const& _inv)
     case CommandId::SyncBats:
         return Cmd::SyncBats(ws, _inv);
     case CommandId::Make:
-    case CommandId::Build:
-    case CommandId::Run:
+        return Cmd::Make(ws, _inv);
     case CommandId::Clean:
+        return Cmd::Clean(ws, _inv);
     case CommandId::Clear:
-    case CommandId::Rebuild:
+        return Cmd::Clear(_inv);
     case CommandId::VendorAdd:
     case CommandId::VendorRemove:
     case CommandId::VendorList:

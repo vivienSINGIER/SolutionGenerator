@@ -155,36 +155,6 @@ namespace CommandTable
         },
         
         {
-            CommandId::Build, "", "build",
-            /*positionals*/{
-                { "config", CommandValueType::Enum, false, { "Debug", "Release", "all" },
-                    "the build configuration (default: Debug)"}
-            },
-            /*options*/ {
-                    { "only", '\0', CommandValueType::List, false, false, {},
-                    "the list of projects to build"},
-                    { "msbuild", '\0', CommandValueType::Path, false, false, {},
-                    "explicit path to MSBuild.exe"}
-            },
-            "Builds the projects for the given config"
-        },
-        
-        {
-            CommandId::Run, "", "run",
-            /*positionals*/{
-                { "project", CommandValueType::String, false, {}, "the name of the specified project"},
-                {"config", CommandValueType::Enum, false, { "Debug", "Release" },
-                    "the run configuration (default: Debug)"},
-            },
-            /*options*/ {
-                {
-                    "detach", '\0', CommandValueType::Flag, false, false, {},
-                    "starts the app as an independent process" }
-            },
-            "Runs the default or chosen project"
-        },
-        
-        {
             CommandId::Clean, "", "clean", {}, {},
             "Deletes all compiler output in the /ide folder"
         },
@@ -192,15 +162,6 @@ namespace CommandTable
         {
             CommandId::Clear, "", "clear", {}, {},
             "Deletes the /ide folder"
-        },
-        
-        {
-            CommandId::Rebuild, "", "rebuild",
-            /*positionals*/{
-                { "config", CommandValueType::Enum, false, { "Debug", "Release", "all" },
-                    "the build configuration (default: Debug)"}
-            }, {},
-            "Rebuilds the chosen config"
         }
     };
 

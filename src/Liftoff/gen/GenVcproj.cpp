@@ -10,7 +10,8 @@ namespace
 {
     using Gen::Braced;
     using Gen::Tag;
-
+    using Gen::AddRootRelative;
+    
     std::string Header()
     {
         std::string out;
@@ -23,31 +24,31 @@ namespace
     std::string ProjectConfigurations(SolutionManifest const& _s)
     {
         std::vector<std::string> values;
-        
+
         for (auto const& p : _s.platforms)
         {
             for (auto const& c : _s.configs)
             {
-                std::string config = Tag("Configuration", {c}, 0, {});
-                std::string platform = Tag("Platform", {p}, 0, {});
-                
-                std::string v = Tag("ProjectConfiguration", {config, platform}, 0, {"Include=\"" + c + "|" + p + "\""});
+                std::string config = Tag("Configuration", {c});
+                std::string platform = Tag("Platform", {p});
+
+                std::string v = Tag("ProjectConfiguration", {config, platform}, {"Include=\"" + c + "|" + p + "\""});
                 values.push_back(v);
             }
         }
-        
-        return Tag("ItemGroup", values, 1, {"Label=\"ProjectConfigurations\""});
+
+        return Tag("ItemGroup", values, {"Label=\"ProjectConfigurations\""});
     }
-    
+
     std::string Globals(SolutionManifest const& _s, ProjectManifest const& _p)
     {
-        std::string guid = Tag("ProjectGuid", {Braced(GUID::GenerateGuid(_s.name, _p.name))}, 0, {});
-        std::string rNamespace = Tag("RootNamespace", {_p.name}, 0, {});
-        std::string keyword = Tag("Keyword", {"Win32Proj"}, 0, {});
-        
-        return Tag("PropertyGroup", {guid, rNamespace, keyword}, 1, {"Label=\"" + std::string("Globals") + "\""});
+        std::string guid = Tag("ProjectGuid", {Braced(GUID::GenerateGuid(_s.name, _p.name))});
+        std::string rNamespace = Tag("RootNamespace", {_p.name});
+        std::string keyword = Tag("Keyword", {"Win32Proj"});
+
+        return Tag("PropertyGroup", {guid, rNamespace, keyword}, {"Label=\"Globals\""});
     }
-    
+
     std::string Configuration(SolutionManifest const& _s, ProjectManifest const& _p)
     {
         std::string pType = "Application";
@@ -55,46 +56,44 @@ namespace
             pType = "StaticLibrary";
         else if (_p.kind == "dynamiclib")
             pType = "DynamicLibrary";
-        
-        std::string type = Tag("ConfigurationType", {pType}, 0, {});
-        std::string useDebugD = Tag("UseDebugLibraries", {"true"}, 0, {"Condition=\"'$(Configuration)'=='Debug'\""});
-        std::string useDebugR = Tag("UseDebugLibraries", {"false"}, 0, {"Condition=\"'$(Configuration)'=='Release'\""});
-        std::string toolset = Tag("PlatformToolset", {_s.toolset}, 0, {});
-        std::string opti = Tag("WholeProgramOptimization", {"true"}, 0, {"Condition=\"'$(Configuration)'=='Release'\""});
-        std::string charSet = Tag("CharacterSet", {_s.characterSet}, 0, {});
-        
-        std::string indent = "    ";
-        
-        std::string out = indent + "<Import Project=\"$(VCTargetsPath)\\Microsoft.Cpp.Default.props\" />\n";
-        out += Tag("PropertyGroup", {type, useDebugD, useDebugR, toolset, opti, charSet}, 1, {"Label=\"" + std::string("Configuration") + "\""});
-        out += indent + "<Import Project=\"$(VCTargetsPath)\\Microsoft.Cpp.props\" />\n";
-        out += indent + "<ImportGroup Label=\"ExtensionSettings\" />\n";
-        out += indent + "<ImportGroup Label=\"PropertySheets\">\n";
-        out += indent + indent + 
-            "<Import Project=\"$(UserRootDir)\\Microsoft.Cpp.$(Platform).user.props\" "
-            "Condition=\"exists('$(UserRootDir)\\Microsoft.Cpp.$(Platform).user.props')\" "
-            "Label=\"LocalAppDataPlatform\" />\n";
-        out += indent + "</ImportGroup>\n";
-        out += indent + "<PropertyGroup Label=\"UserMacros\" />\n";
+
+        std::string type = Tag("ConfigurationType", {pType});
+        std::string useDebugD = Tag("UseDebugLibraries", {"true"}, {"Condition=\"'$(Configuration)'=='Debug'\""});
+        std::string useDebugR = Tag("UseDebugLibraries", {"false"}, {"Condition=\"'$(Configuration)'=='Release'\""});
+        std::string toolset = Tag("PlatformToolset", {_s.toolset});
+        std::string opti = Tag("WholeProgramOptimization", {"true"}, {"Condition=\"'$(Configuration)'=='Release'\""});
+        std::string charSet = Tag("CharacterSet", {_s.characterSet});
+
+        std::string localAppData = Tag("Import", {}, {
+            "Project=\"$(UserRootDir)\\Microsoft.Cpp.$(Platform).user.props\"",
+            "Condition=\"exists('$(UserRootDir)\\Microsoft.Cpp.$(Platform).user.props')\"",
+            "Label=\"LocalAppDataPlatform\""});
+
+        std::string out = "<Import Project=\"$(VCTargetsPath)\\Microsoft.Cpp.Default.props\" />\n";
+        out += Tag("PropertyGroup", {type, useDebugD, useDebugR, toolset, opti, charSet}, {"Label=\"Configuration\""});
+        out += "<Import Project=\"$(VCTargetsPath)\\Microsoft.Cpp.props\" />\n";
+        out += "<ImportGroup Label=\"ExtensionSettings\" />\n";
+        out += Tag("ImportGroup", {localAppData}, {"Label=\"PropertySheets\""});
+        out += "<PropertyGroup Label=\"UserMacros\" />\n";
         return out;
     }
-    
+
     std::string OutDirs()
     {
-        std::string outDir = Tag("OutDir", {"$(ProjectDir)$(Platform)\\$(Configuration)\\"}, 0, {});
-        std::string intDir = Tag("IntDir", {"$(ProjectDir)$(Platform)\\$(Configuration)\\intermediate\\"}, 0, {});
-        
-        return Tag("PropertyGroup", {outDir, intDir}, 1, {});
+        std::string outDir = Tag("OutDir", {"$(ProjectDir)$(Platform)\\$(Configuration)\\"});
+        std::string intDir = Tag("IntDir", {"$(ProjectDir)$(Platform)\\$(Configuration)\\intermediate\\"});
+
+        return Tag("PropertyGroup", {outDir, intDir});
     }
-    
+
     std::string Vcpkg(ProjectManifest const& _p)
     {
-        std::string enabled = Tag("VcpkgEnabled", {"false"}, 0, {});
-        std::string manifest = Tag("VcpkgEnableManifest", {"false"}, 0, {});
-        std::string root = Tag("VcpkgManifestRoot", {"$(SolutionDir)..\\config\\vcpkg\\" + _p.name}, 0, {});
-        std::string dir = Tag("VcpkgInstalledDir", {"$(SolutionDir)..\\vendor\\$(VcpkgTriplet)"}, 0, {});
-        
-        return Tag("PropertyGroup", {enabled, manifest, root, dir}, 1, {});
+        std::string enabled = Tag("VcpkgEnabled", {"false"});
+        std::string manifest = Tag("VcpkgEnableManifest", {"false"});
+        std::string root = Tag("VcpkgManifestRoot", {"$(SolutionDir)..\\config\\vcpkg\\" + _p.name});
+        std::string dir = Tag("VcpkgInstalledDir", {"$(SolutionDir)..\\vendor\\$(VcpkgTriplet)"});
+
+        return Tag("PropertyGroup", {enabled, manifest, root, dir});
     }
     
     ConfigOverride const* FindOverride(std::map<std::string, ConfigOverride> const& _overrides,
@@ -175,8 +174,6 @@ namespace
         out += "%(PreprocessorDefinitions)";
         return out;
     }
-    
-    using Gen::AddRootRelative;
 
     std::string GetIncludeDirs(ProjectManifest const& _p, ResolvedVendor const& _vendor,
                                 std::vector<fs::path> const& _exports, fs::path const& _root)
@@ -201,11 +198,30 @@ namespace
                                    ResolvedVendor const& _vendor, std::vector<fs::path> const& _exports,
                                    fs::path const& _root)
     {
-        std::string funcLvlLinking = Tag("FunctionLevelLinking", {"true"}, 0, {"Condition=\"'$(Configuration)'=='Release'\""});
-        std::string intrinsicFuncs = Tag("IntrinsicFunctions", {"true"}, 0, {"Condition=\"'$(Configuration)'=='Release'\""});
-        std::string sdl = Tag("SDLCheck", {"true"});
-        std::string cppStd = Tag("LanguageStandard", {"stdcpp" + _s.cppStandard});
-        std::string includeDirs = Tag("AdditionalIncludeDirectories", {GetIncludeDirs(_p, _vendor, _exports, _root)});
+        std::vector<std::string> fields;
+        
+        fields.push_back( Tag( "Optimization",                  {"Disabled"},           {"Condition=\"'$(Configuration)'=='Debug'\""} ) );
+        fields.push_back( Tag( "Optimization",                  {"MaxSpeed"},           {"Condition=\"'$(Configuration)'=='Release'\""} ) );
+        fields.push_back( Tag( "InlineFunctionExpansion",       {"Disabled"},           {"Condition=\"'$(Configuration)'=='Debug'\""} ) );
+        fields.push_back( Tag( "InlineFunctionExpansion",       {"AnySuitable"},        {"Condition=\"'$(Configuration)'=='Release'\""} ) );
+        fields.push_back( Tag( "IntrinsicFunctions",            {"false"},              {"Condition=\"'$(Configuration)'=='Debug'\""} ) );
+        fields.push_back( Tag( "IntrinsicFunctions",            {"true"},               {"Condition=\"'$(Configuration)'=='Release'\""} ) );
+        fields.push_back( Tag( "WholeProgramOptimization",      {"false"},              {"Condition=\"'$(Configuration)'=='Debug'\""} ) ); 
+        fields.push_back( Tag( "WholeProgramOptimization",      {"true"},               {"Condition=\"'$(Configuration)'=='Release'\""} ) ); 
+        fields.push_back( Tag( "RuntimeLibrary",                {"MultiThreadedDebug"}, {"Condition=\"'$(Configuration)'=='Debug'\""} ) );
+        fields.push_back( Tag( "RuntimeLibrary",                {"MultiThreaded"},      {"Condition=\"'$(Configuration)'=='Release'\""} ) );
+        fields.push_back( Tag( "BasicRuntimeLibrary",           {"EnableFastChecks"},   {"Condition=\"'$(Configuration)'=='Debug'\""} ) );
+        fields.push_back( Tag( "BasicRuntimeLibrary",           {"Default"},            {"Condition=\"'$(Configuration)'=='Release'\""} ) );
+        fields.push_back( Tag( "FunctionLevelLinking",          {"false"},              {"Condition=\"'$(Configuration)'=='Debug'\""} ) );
+        fields.push_back( Tag( "FunctionLevelLinking",          {"true"},               {"Condition=\"'$(Configuration)'=='Release'\""} ) );
+        fields.push_back( Tag( "SupportJustMyCode",             {"true"},               {"Condition=\"'$(Configuration)'=='Debug'\""} ) );
+        fields.push_back( Tag( "SupportJustMyCode",             {"false"},              {"Condition=\"'$(Configuration)'=='Release'\""} ) );
+        fields.push_back( Tag( "DebugInformationFormat",        {"ProgramDatabase"} ) );
+        fields.push_back( Tag( "MultiProcessorCompilation",     {"true"} ) );
+        fields.push_back( Tag( "SDLCheck",                      {"true"} ) );
+        fields.push_back( Tag( "LanguageStandard",              {"stdcpp" + _s.cppStandard} ) );
+        fields.push_back( Tag( "AdditionalIncludeDirectories",  {GetIncludeDirs(_p, _vendor, _exports, _root)} ) );
+        fields.push_back( Tag( "PrecompiledHeader",             {"NotUsing"} ) );
 
         std::vector<std::string> warningLevels;
         std::vector<std::string> treatWarnAsErrors;
@@ -216,20 +232,15 @@ namespace
         {
             std::string condition = "Condition=\"'$(Configuration)'=='" + c + "'\"";
 
-            warningLevels.push_back(Tag("WarningLevel", {GetWarningLevel(_s, _p, c)}, 0, {condition}));
-            treatWarnAsErrors.push_back(Tag("TreatWarningAsError", {GetWarningsAsErrors(_s, _p, c) ? "true" : "false"}, 0, {condition}));
-            conformanceModes.push_back(Tag("ConformanceMode", {GetConformanceMode(_s, _p, c) ? "true" : "false"}, 0, {condition}));
+            warningLevels.push_back(Tag("WarningLevel", {GetWarningLevel(_s, _p, c)}, {condition}));
+            treatWarnAsErrors.push_back(Tag("TreatWarningAsError", {GetWarningsAsErrors(_s, _p, c) ? "true" : "false"}, {condition}));
+            conformanceModes.push_back(Tag("ConformanceMode", {GetConformanceMode(_s, _p, c) ? "true" : "false"}, {condition}));
 
             for (auto const& p : _s.platforms)
-                preprocessorDeffs.push_back(Tag("PreprocessorDefinitions", {GetPreprocessorDeff(_s, _p, c, p)}, 0,
+                preprocessorDeffs.push_back(Tag("PreprocessorDefinitions", {GetPreprocessorDeff(_s, _p, c, p)},
                     {"Condition=\"'$(Configuration)|$(Platform)'=='" + c  + "|" + p + "'\""}));
         }
-
-        std::string runTimeLib1 = Tag("RuntimeLibrary", {"MultiThreadedDebug"}, 0, {"Condition=\"'$(Configuration)'=='Debug'\""});
-        std::string runTimeLib2 = Tag("RuntimeLibrary", {"MultiThreaded"}, 0, {"Condition=\"'$(Configuration)'=='Release'\""});
-        std::string pchState = Tag("PrecompiledHeader", {"NotUsing"});
-
-        std::vector<std::string> fields = { funcLvlLinking, intrinsicFuncs, sdl };
+        
         for (auto const& w : warningLevels)      
             fields.push_back(w);
         for (auto const& t : treatWarnAsErrors)  
@@ -238,26 +249,29 @@ namespace
             fields.push_back(d);
         for (auto const& c : conformanceModes)   
             fields.push_back(c);
-        fields.push_back(cppStd);
-        fields.push_back(runTimeLib1);
-        fields.push_back(runTimeLib2);
-        fields.push_back(pchState);
-        fields.push_back(includeDirs);
 
-        return Tag("ClCompile", fields, 0, {});
+        return Tag("ClCompile", fields);
     }
     
     std::string ItemDeffLink(Workspace& _w, ProjectManifest const& _p, ResolvedVendor const& _vendor)
     {
+        std::vector<std::string> fields;
+        
         std::string subsystem = "";
         if (_p.kind == "console")
-            subsystem = Tag("Subsystem", {"Console"});
+            fields.push_back(Tag("Subsystem", {"Console"}));
         else if (_p.kind == "window")
-            subsystem = Tag("Subsystem", {"Application"});
+            fields.push_back(Tag("Subsystem", {"Windows"}));
         
-        std::string comDatFold = Tag("EnableCOMDATFolding", {"true"}, 0, {"Condition=\"'$(Configuration)'=='Release'\""});
-        std::string optRef = Tag("OptimizeReferences", {"true"}, 0, {"Condition=\"'$(Configuration)'=='Release'\""});
-        std::string genDebugInfo = Tag("GenerateDebugInformation", {"true"});
+        fields.push_back(Tag("GenerateDebugInformation", {"true"}));
+        fields.push_back(Tag("LinkIncrementAll", {"true"}, {"Condition=\"'$(Configuration)'=='Debug'"}));
+        fields.push_back(Tag("LinkIncrementAll", {"false"}, {"Condition=\"'$(Configuration)'=='Release'"}));
+        fields.push_back(Tag("OptimizeReferences", {"false"}, {"Condition=\"'$(Configuration)'=='Debug'\""}));
+        fields.push_back(Tag("OptimizeReferences", {"true"}, {"Condition=\"'$(Configuration)'=='Release'\""}));
+        fields.push_back(Tag("EnableCOMDATFolding", {"false"}, {"Condition=\"'$(Configuration)'=='Debug'\""}));
+        fields.push_back(Tag("EnableCOMDATFolding", {"true"}, {"Condition=\"'$(Configuration)'=='Release'\""}));
+        fields.push_back(Tag("LinkTimeCodeGeneration", {"Default"}, {"Condition=\"'$(Configuration)'=='Debug'"}));
+        fields.push_back(Tag("LinkTimeCodeGeneration", {"UseLinkTimeCodeGeneration"}, {"Condition=\"'$(Configuration)'=='Release'"}));
         
         std::string addLibDirV = "";
         std::string addDepV = "";
@@ -286,74 +300,86 @@ namespace
             addDepV += AddRootRelative(c) + ";";
         addDepV += "%(AdditionalDependencies)";
         
-        std::string addLibDirD = Tag("AdditionalLibraryDirectories", {addLibDirV}, 0, { "Condition=\"'$(Configuration)'=='Debug'\""});
-        std::string addLibDirR = Tag("AdditionalLibraryDirectories", {addLibDirV}, 0, { "Condition=\"'$(Configuration)'=='Release'\""});
+        fields.push_back(Tag("AdditionalLibraryDirectories", {addLibDirV}, { "Condition=\"'$(Configuration)'=='Debug'\""}));
+        fields.push_back(Tag("AdditionalLibraryDirectories", {addLibDirV}, { "Condition=\"'$(Configuration)'=='Release'\""}));
+
+        fields.push_back(Tag("AdditionalDependencies", {addDepV}, { "Condition=\"'$(Configuration)'=='Debug'\""}));
+        fields.push_back(Tag("AdditionalDependencies", {addDepV}, { "Condition=\"'$(Configuration)'=='Release'\""}));
         
-        std::string addDepD = Tag("AdditionalDependencies", {addDepV}, 0, { "Condition=\"'$(Configuration)'=='Debug'\""});
-        std::string addDepR = Tag("AdditionalDependencies", {addDepV}, 0, { "Condition=\"'$(Configuration)'=='Release'\""});
+        return Tag("Link", fields);
+    }
+    
+    std::string ItemDeffPostBuild(ResolvedVendor const& _vendor)
+    {
+        fs::path root;
+        if (Error e = Cmd::GetRootPath(root))
+            return Tag("PostBuildEvent", {});
         
-        return Tag("Link", {subsystem, comDatFold, optRef, genDebugInfo, addLibDirD, addLibDirR, addDepD, addDepR});
+        if (_vendor.dlls.empty())
+            return Tag("PostBuildEvent", {});
+        
+        std::string cmd;
+        for (auto const& d : _vendor.dlls)
+        {
+            if (!cmd.empty())
+                cmd += "&#10;";
+            cmd += "xcopy /y /d /q \"" + AddRootRelative(fs::relative(d, root)) + "\" \"$(OutDir)\"";
+        }
+        
+        return Tag("PostBuildEvent",  { Tag( "Command", {cmd } ), Tag(  "Message", {"Copying vendor DLLs"} ) } );
     }
     
     std::string ItemGrpClInclude(std::vector<fs::path> const& _includes)
     {
         std::vector<std::string> values;
-        
+
         for (auto const& i : _includes)
-            values.push_back("<ClInclude Include=\"" + AddRootRelative(i) + "\"/>");
-        
-        return Tag("ItemGroup", values, 1, {});
+            values.push_back(Tag("ClInclude", {}, {"Include=\"" + AddRootRelative(i) + "\""}));
+
+        return Tag("ItemGroup", values);
     }
-    
+
     std::string ItemGrpClCompile(std::vector<fs::path> const& _compiles)
     {
         std::vector<std::string> values;
-        
+
         for (auto const& i : _compiles)
-            values.push_back("<ClCompile Include=\"" + AddRootRelative(i) + "\"/>");
-        
-        return Tag("ItemGroup", values, 1, {});
+            values.push_back(Tag("ClCompile", {}, {"Include=\"" + AddRootRelative(i) + "\""}));
+
+        return Tag("ItemGroup", values);
     }
-    
+
     std::string ItemGrpNone(std::vector<fs::path> const& _nones, std::vector<fs::path> const& _res)
     {
         std::vector<std::string> values;
         for (auto const& i : _nones)
-            values.push_back("<None Include=\"" + AddRootRelative(i) + "\"/>");
+            values.push_back(Tag("None", {}, {"Include=\"" + AddRootRelative(i) + "\""}));
         for (auto const& i : _res)
-            values.push_back("<None Include=\"" + AddRootRelative(i) + "\"/>");
-        
-        return Tag("ItemGroup", values, 1, {});
+            values.push_back(Tag("None", {}, {"Include=\"" + AddRootRelative(i) + "\""}));
+
+        return Tag("ItemGroup", values);
     }
-    
+
     std::string ResourceCompile(std::vector<fs::path> const& _resCompiles)
     {
         std::vector<std::string> values;
         for (auto const& i : _resCompiles)
-            values.push_back("<ResourceCompile Include=\"" + AddRootRelative(i) + "\"/>");
-        return Tag("ItemGroup", values, 1, {});
+            values.push_back(Tag("ResourceCompile", {}, {"Include=\"" + AddRootRelative(i) + "\""}));
+        return Tag("ItemGroup", values);
     }
-    
+
     std::string ProjectReferences(SolutionManifest const& _s, ProjectManifest const& _p)
     {
         std::vector<std::string> values;
-        
+
         for (auto const& d : _p.dependencies)
         {
             std::string guid = Tag("Project", {Braced( GUID::GenerateGuid(_s.name, d)) });
-            std::string path = "\"$(SolutionDir)\\" + d + "\\" + d + ".vcxproj\"";
-            values.push_back(Tag("ProjectReferences", {guid}, 0, { "Include=" + path }));
+            std::string path = "\"$(SolutionDir)" + d + "\\" + d + ".vcxproj\"";
+            values.push_back(Tag("ProjectReference", {guid}, { "Include=" + path }));
         }
-        
-        return Tag("ItemGroup", values, 0, {});
-    }
-    
-    std::string Footer()
-    {
-        std::string out = "    <Import Project=\"$(VCTargetsPath)\\Microsoft.Cpp.targets\" />\n";
-        out += "    <ImportGroup Label=\"ExtensionTargets\" />\n";
-        out += "</Project>\n";
-        return out;
+
+        return Tag("ItemGroup", values);
     }
 
 }
@@ -377,20 +403,26 @@ Error Gen::GenVcProj(Workspace& _workspace, SolutionManifest const& _solution, P
     if (Error e = Discovery::RunDiscovery(root / "src" / _project.name, root / "res" / _project.name, _project, dis))
         return e;
     
+    std::string body;
+    body += ProjectConfigurations(_solution);
+    body += Globals(_solution, _project);
+    body += Configuration(_solution, _project);
+    body += OutDirs();
+    body += Vcpkg(_project);
+    body += Tag("ItemDefinitionGroup", { ItemDeffClCompile(_solution, _project, vendor, exports, root),
+                                          ItemDeffLink(_workspace, _project, vendor),
+                                          ItemDeffPostBuild(vendor)});
+    body += ItemGrpClInclude(dis.clIncludeFiles);
+    body += ItemGrpClCompile(dis.clCompileFiles);
+    body += ItemGrpNone(dis.noneFiles, dis.resFiles);
+    body += ResourceCompile(dis.resourcesCompileFiles);
+    body += ProjectReferences(_solution, _project);
+    body += "<Import Project=\"$(VCTargetsPath)\\Microsoft.Cpp.targets\" />\n";
+    body += "<ImportGroup Label=\"ExtensionTargets\" />\n";
+
     std::string content = Header();
-    content += ProjectConfigurations(_solution);
-    content += Globals(_solution, _project);
-    content += Configuration(_solution, _project);
-    content += OutDirs();
-    content += Vcpkg(_project);
-    content += Tag("ItemDefinitionGroup", { ItemDeffClCompile(_solution, _project, vendor, exports, root),
-                                                             ItemDeffLink(_workspace, _project, vendor)}, 1, {});
-    content += ItemGrpClInclude(dis.clIncludeFiles);
-    content += ItemGrpClCompile(dis.clCompileFiles);
-    content += ItemGrpNone(dis.noneFiles, dis.resFiles);
-    content += ResourceCompile(dis.resourcesCompileFiles);
-    content += ProjectReferences(_solution, _project);
-    content += Footer();
+    content += Gen::Indent(body);
+    content += "</Project>\n";
 
     if (Error e = FileHelper::WriteFileAtomic(_path, content))
         return e;

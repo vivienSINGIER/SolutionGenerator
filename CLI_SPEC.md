@@ -13,7 +13,7 @@ changes.
 Hybrid:
 
 - **Flat verbs** for the build lifecycle — the commands run constantly:
-  `make`, `build`, `run`, `clean`, `clear`, `rebuild`.
+  `make`, `clean`, `clear`.
 - **Grouped nouns** for setup — run once at project start, occasionally later:
   `project`, `dep`, `vendor`, plus the flat `new`, `set`, and `sync-bats`.
 
@@ -38,7 +38,7 @@ There is **no `--` end-of-options delimiter** in v1: no command takes a
 positional value that can begin with `--` (preprocessor names like `WIN32` are
 bare; `set` / `project set` values are enums, bools, or comma lists). It can be
 added later without breaking any existing invocation if a command ever needs it
-(the likely first case: `run` forwarding trailing args to the launched exe).
+(the likely first case: a future `run` forwarding trailing args to the launched exe).
 
 ## Solution discovery
 
@@ -99,11 +99,8 @@ explicitly and skips the search.
 | `solgen set` | setup | [ ] |
 | `solgen sync-bats` | setup | [ ] |
 | `solgen make` | lifecycle | [ ] |
-| `solgen build` | lifecycle | [ ] |
-| `solgen run` | lifecycle | [ ] |
 | `solgen clean` | lifecycle | [ ] |
 | `solgen clear` | lifecycle | [ ] |
-| `solgen rebuild` | lifecycle | [ ] |
 
 ---
 
@@ -119,14 +116,14 @@ Creates a new solution at `<path>` (created if missing):
 
 - `tools/solgen.exe` — the running executable copies **itself** here; the in-tree
   copy is what every later command uses.
-- `tools/bat/` — the six general wrappers `make.bat` `build.bat` `rebuild.bat`
-  `clean.bat` `clear.bat` `run.bat`, each a one-liner forwarding to
+- `tools/bat/` — the three general wrappers `make.bat`
+  `clean.bat` `clear.bat`, each a one-liner forwarding to
   `..\solgen.exe <verb> %*`.
 - `tools/config/solution.json` — solution block, empty `projects`.
 - `.gitignore` — a single line, `.ide`.
 
 `tools/solgen.exe` and `tools/bat/*.bat` are committed (only `.ide` is ignored),
-so a fresh clone builds with no extra step — `build` runs `make` first.
+so a fresh clone works with no extra step.
 
 Does **not** create `vendor/` (conditional) or `.ide/` (generated). No interactive
 prompts — `--name` is required and the command fails without it. Refuses to run if
@@ -149,8 +146,7 @@ In one step:
   `int main()` for `console`, an empty `WinMain()` for `window`
 - writes `tools/config/projects/<name>.json` with `kind`
 - appends `<name>` to `solution.json` `projects`
-- writes `tools/bat/<name>.make.bat` and `<name>.build.bat` (scoped `--only
-  <name>`), plus `<name>.run.bat` for `console` / `window`
+- writes `tools/bat/<name>.make.bat` (scoped `--only <name>`)
 
 `--depends-on` is repeatable; each target must already exist (validated, cycle-checked).
 `--no-scaffold` writes only the manifests, no folders or starter file.
@@ -275,47 +271,15 @@ No compilation. Pipeline: load manifests → validate → resolve dependency gra
 `--only <a,b>` rewrites the `.sln` from the full project list (references stay
 valid) but regenerates only the listed `.vcxproj` files.
 
-### `solgen build [config]`
-
-```
-solgen build [Debug|Release|all] [--only <a,b,...>]
-```
-
-Runs `make` first (always — no change detection), then invokes MSBuild on the
-generated `.sln`.
-
-- no arg → `Debug`
-- `Release` → Release
-- `all` → both configs
-
-`--only` restricts the MSBuild target to the listed projects. Exit `4` if MSBuild
-fails. MSBuild is located by running Microsoft's `vswhere.exe` to find the VS
-install; `--msbuild <path>` points at `MSBuild.exe` directly (Build-Tools-only
-installs, portable installs, CI).
-
-### `solgen run [project] [config]`
-
-```
-solgen run [project] [Debug|Release] [--detach]
-```
-
-`build` for the given config (default `Debug`), then launches the executable.
-`project` defaults to the only `console` / `window` project; with more than one
-and no argument, exits `1` listing the candidates.
-
-By default `solgen` **waits** — the app's output goes to the terminal, Ctrl+C
-kills it, and `solgen` returns the app's exit code. `--detach` starts the app as
-an independent process and returns to the shell immediately (useful for a GUI app
-you want to keep open).
-
 ### `solgen clean`
 
 ```
 solgen clean
 ```
 
-Deletes compiler output only — `.ide/bin/`, `.ide/obj/`, and `.ide/.vs/`. Leaves
-the generated `.sln` / `.vcxproj` in place.
+Deletes compiler output only — each project's `.ide/<project>/<platform>/` folder
+(binaries and intermediates) and `.ide/.vs/`. Leaves the generated `.sln` /
+`.vcxproj` in place.
 
 ### `solgen clear`
 
@@ -326,18 +290,11 @@ solgen clear [--yes]
 Deletes the entire `.ide/` folder — generated projects and build output both.
 Prompts unless `--yes`. Never touches `src/`, `res/`, `vendor/`, or `tools/`.
 
-### `solgen rebuild [config]`
-
-```
-solgen rebuild [Debug|Release|all]
-```
-
-`clean` followed by `build [config]`.
-
 ---
 
 ## Non-goals for v1
 
+- No `build`, `rebuild` or `run` commands yet — deferred (see `PLAN.md` §6).
 - No GUI — CLI only; revisit once the command set is stable.
 - No package-manager integration (vcpkg / Conan) — `vendor` assumes the folder is
   populated by hand.

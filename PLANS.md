@@ -15,3 +15,10 @@ Deferred out of the first version of `ProjectManifest` (2026-09-01):
 - **Manifest path references** — the solution and project manifests are assumed
   to live in fixed locations relative to each other; no manifest stores a path
   to another manifest.
+
+## Compiler options
+
+- **Vectorizer report toggle** — make MSVC's auto-vectorizer report switchable,
+  `/Qvec-report:1` (loops that were vectorized) or `/Qvec-report:2` (vectorized
+  and not vectorized, with reason codes). Off by default; when enabled, the
+  generator emits the flag in the `.vcxproj` `AdditionalOptions`.

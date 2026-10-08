@@ -36,6 +36,8 @@ namespace Cmd
     Error SyncBats(Workspace& _ws, Invocation const& _inv);
     
     Error Make(Workspace& _ws, Invocation const& _inv);
+    Error Clean(Workspace& _ws, Invocation const& _inv);
+    Error Clear(Invocation const& _inv);
 }
 
 #endif
