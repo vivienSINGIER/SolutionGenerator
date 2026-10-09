@@ -16,6 +16,11 @@
 
   "defines": [],
 
+  "additionalOptions": {
+    "compiler": [],
+    "linker": []
+  },
+
   "configOverrides": {
     "Release": { "warningsAsErrors": true }
   },

@@ -34,6 +34,8 @@ public:
     
     std::vector<std::string> defines;
 
+    AdditionalOptions additionalOptions;
+
     std::map<std::string, ConfigOverride> configOverrides;
     
     std::vector<ProjectDesc> projects;

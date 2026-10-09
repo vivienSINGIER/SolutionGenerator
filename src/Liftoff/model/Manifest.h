@@ -23,10 +23,10 @@ struct ProjectDesc
 
 struct VendorDep
 {
-    std::vector<std::string> include;   // include dirs to add for consumers of this project
-    std::vector<std::string> libs;      // .lib files to link
-    std::map<std::string, std::string> libDirs;   // config name -> lib search path
-    std::vector<std::string> dlls;      // dlls to copy next to the executable
+    std::vector<std::string> include;
+    std::vector<std::string> libs;
+    std::map<std::string, std::string> libDirs;
+    std::vector<std::string> dlls;
 };
 
 struct ConfigOverride
@@ -38,6 +38,12 @@ struct ConfigOverride
     std::vector<std::string> defines;
 
     bool overrides[4] = { false, false, false, false };
+};
+
+struct AdditionalOptions
+{
+    std::vector<std::string> compiler;
+    std::vector<std::string> linker;
 };
 
 namespace Manifest

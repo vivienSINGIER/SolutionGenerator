@@ -175,6 +175,29 @@ namespace
         return out;
     }
 
+    // Joins the manifest's raw flags into a single AdditionalOptions value,
+    // escaped for XML since flags may carry quotes (e.g. /D"NAME=\"v\"").
+    std::string GetAdditionalOptions(std::vector<std::string> const& _options)
+    {
+        std::string out;
+        for (auto const& o : _options)
+        {
+            for (char c : o)
+            {
+                switch (c)
+                {
+                    case '&':  out += "&amp;";  break;
+                    case '<':  out += "&lt;";   break;
+                    case '>':  out += "&gt;";   break;
+                    default:   out += c;        break;
+                }
+            }
+            out += " ";
+        }
+        out += "%(AdditionalOptions)";
+        return out;
+    }
+
     std::string GetIncludeDirs(ProjectManifest const& _p, ResolvedVendor const& _vendor,
                                 std::vector<fs::path> const& _exports, fs::path const& _root)
     {
@@ -223,6 +246,9 @@ namespace
         fields.push_back( Tag( "AdditionalIncludeDirectories",  {GetIncludeDirs(_p, _vendor, _exports, _root)} ) );
         fields.push_back( Tag( "PrecompiledHeader",             {"NotUsing"} ) );
 
+        if (!_s.additionalOptions.compiler.empty())
+            fields.push_back( Tag( "AdditionalOptions",         {GetAdditionalOptions(_s.additionalOptions.compiler)} ) );
+
         std::vector<std::string> warningLevels;
         std::vector<std::string> treatWarnAsErrors;
         std::vector<std::string> conformanceModes;
@@ -253,7 +279,8 @@ namespace
         return Tag("ClCompile", fields);
     }
     
-    std::string ItemDeffLink(Workspace& _w, ProjectManifest const& _p, ResolvedVendor const& _vendor)
+    std::string ItemDeffLink(Workspace& _w, SolutionManifest const& _s, ProjectManifest const& _p,
+                              ResolvedVendor const& _vendor)
     {
         std::vector<std::string> fields;
         
@@ -305,7 +332,10 @@ namespace
 
         fields.push_back(Tag("AdditionalDependencies", {addDepV}, { "Condition=\"'$(Configuration)'=='Debug'\""}));
         fields.push_back(Tag("AdditionalDependencies", {addDepV}, { "Condition=\"'$(Configuration)'=='Release'\""}));
-        
+
+        if (!_s.additionalOptions.linker.empty())
+            fields.push_back(Tag("AdditionalOptions", {GetAdditionalOptions(_s.additionalOptions.linker)}));
+
         return Tag("Link", fields);
     }
     
@@ -410,7 +440,7 @@ Error Gen::GenVcProj(Workspace& _workspace, SolutionManifest const& _solution, P
     body += OutDirs();
     body += Vcpkg(_project);
     body += Tag("ItemDefinitionGroup", { ItemDeffClCompile(_solution, _project, vendor, exports, root),
-                                          ItemDeffLink(_workspace, _project, vendor),
+                                          ItemDeffLink(_workspace, _solution, _project, vendor),
                                           ItemDeffPostBuild(vendor)});
     body += ItemGrpClInclude(dis.clIncludeFiles);
     body += ItemGrpClCompile(dis.clCompileFiles);

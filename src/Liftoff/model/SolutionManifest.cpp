@@ -54,6 +54,10 @@ Error SolutionManifest::Serialize(fs::path const& _manifestPath)
     
     c["defines"] = defines;
 
+    c["additionalOptions"] = js::object();
+    c["additionalOptions"]["compiler"] = additionalOptions.compiler;
+    c["additionalOptions"]["linker"] = additionalOptions.linker;
+
     c["configOverrides"] = js::object();
     for (auto const& pair : configOverrides)
     {
@@ -126,6 +130,28 @@ Error SolutionManifest::Deserialize(fs::path const& _configPath)
     ReadRequired(j, "defines",          defines,          err);
 
     ReadOptional(j, "startProject", startProject);
+
+    if (j.contains("additionalOptions"))
+    {
+        js const& options = j["additionalOptions"];
+
+        if (options.is_object() == false)
+            err.details.push_back("field 'additionalOptions' has the wrong type");
+        else
+        {
+            for (auto& [optionKey, optionValue] : options.items())
+            {
+                if (optionKey != "compiler" && optionKey != "linker")
+                    err.details.push_back("incorrect additionalOptions key '" + optionKey + "'. must be 'compiler' or 'linker'");
+            }
+
+            Error optErr = Error::Validation("");
+            if (options.contains("compiler") && !ReadRequired(options, "compiler", additionalOptions.compiler, optErr))
+                err.details.push_back("field 'additionalOptions.compiler' has the wrong type");
+            if (options.contains("linker") && !ReadRequired(options, "linker", additionalOptions.linker, optErr))
+                err.details.push_back("field 'additionalOptions.linker' has the wrong type");
+        }
+    }
 
     if (j.contains("configOverrides"))
     {
