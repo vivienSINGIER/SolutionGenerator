@@ -6,16 +6,16 @@ namespace
 {
     std::vector<std::pair<std::string, std::string>> fixedBats =
     {
-        {"make.bat",    "../Liftoff.exe make"},
-        {"clean.bat",   "../Liftoff.exe clean"},
-        {"clear.bat",   "../Liftoff.exe clear"},
+        {"make.bat",    "\"%~dp0..\\Liftoff.exe\" make -y -v"},
+        {"clean.bat",   "\"%~dp0..\\Liftoff.exe\" clean -y -v"},
+        {"clear.bat",   "\"%~dp0..\\Liftoff.exe\" clear -y -v"},
     };
 
     std::vector<std::pair<std::string, std::string>> ProjectBats(ProjectManifest const& _p)
     {
         return
         {
-            {_p.name + "-make.bat",  "../Liftoff.exe make --only "  + _p.name},
+            {_p.name + "-make.bat",  "\"%~dp0..\\Liftoff.exe\" make -y -v --only "  + _p.name},
         };
     }
 

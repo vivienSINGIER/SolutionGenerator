@@ -8,6 +8,7 @@
   "platforms": ["x64"],
   "toolset": "v143",
   "cppStandard": "20",
+  "runtimeLibrary": "dynamic",
 
   "characterSet": "Unicode",
   "conformanceMode": true,

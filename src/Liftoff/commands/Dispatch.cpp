@@ -37,8 +37,11 @@ Error Cmd::Dispatch(Invocation const& _inv)
     case CommandId::Clear:
         return Cmd::Clear(_inv);
     case CommandId::VendorAdd:
+        return Cmd::VendorAdd(ws, _inv);
     case CommandId::VendorRemove:
+        return Cmd::VendorRemove(ws, _inv);
     case CommandId::VendorList:
+        return Cmd::VendorList(ws, _inv);
     case CommandId::None:
         return Error::Validation("unhandled command");    
     }

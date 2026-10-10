@@ -102,16 +102,18 @@ namespace CommandTable
                 {"lib", CommandValueType::String, true, {}, "the name of the library"},
             },
             /*options*/ {
-                { "include", '\0', CommandValueType::List, true, true, {},
+                { "include", '\0', CommandValueType::List, true, false, {},
                  "the additional include directories"},
-                {"lib-dir", '\0', CommandValueType::List, true, true, {},
+                {"lib-dir", '\0', CommandValueType::List, true, false, {},
                 "the additional library directories"},
-                {"libs", '\0', CommandValueType::List, false, true, {},
+                {"libs", '\0', CommandValueType::List, false, false, {},
                 "the additional .libs dependencies"},
                 {"dlls", '\0', CommandValueType::List, false, false, {},
                 "the additional .dlls dependencies"},
+                {"configuration", '\0', CommandValueType::String, false, false, {},
+                "only add the lib-dir / libs / dlls for this configuration"},
             },
-            "Adds additional dependencies to the project"
+            "Adds additional dependencies to the project, or adds to an existing one"
         },
         
         {

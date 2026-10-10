@@ -3,13 +3,22 @@
 
 #include "model/ProjectManifest.h"
 
+struct ResolvedVendorConfig
+{
+    std::vector<std::string>       libs;
+    std::vector<fs::path>          libDirs;
+    std::vector<fs::path>          dlls;
+};
+
 // Flattened, path-resolved vendor data for a project plus its transitive dependencies.
+// libs / libDirs / dlls apply to every config; configs adds to them for one config.
 struct ResolvedVendor
 {
     std::vector<fs::path>          includeDirs;
     std::vector<std::string>       libs;
-    std::map<std::string, fs::path> libDirs;   // config name -> lib search path
+    std::vector<fs::path>          libDirs;
     std::vector<fs::path>          dlls;
+    std::map<std::string, ResolvedVendorConfig> configs;   // config name -> additions
 };
 
 class DependencyGraph

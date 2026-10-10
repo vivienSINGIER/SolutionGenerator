@@ -9,6 +9,7 @@ constexpr std::string_view validConfigurations[] =   { "Debug", "Release" };
 constexpr std::string_view validPlatforms[] =        { "x64", "Win32" };
 constexpr std::string_view validToolsets[] =         { "v143" };
 constexpr std::string_view validCppStandards[] =      { "20", "17", "14"};
+constexpr std::string_view validRuntimeLibrary[] =   { "dynamic", "static" };
 constexpr std::string_view validCharacterSet[] =     { "UTF-8", "Unicode" };
 constexpr std::string_view validWarningLvl[] =       { "Level4", "Level3", "Level2", "Level1", "TurnOffAllWarnings" };
 
@@ -23,6 +24,7 @@ SolutionManifest::SolutionManifest()
     platforms = { "x64" };
     toolset = "v143";
     cppStandard = "20";
+    runtimeLibrary = "dynamic";
     
     characterSet = "Unicode";
     conformanceMode = true;
@@ -46,6 +48,7 @@ Error SolutionManifest::Serialize(fs::path const& _manifestPath)
     c["platforms"] = platforms;
     c["toolset"] = toolset;
     c["cppStandard"] = cppStandard;
+    c["runtimeLibrary"] = runtimeLibrary;
     
     c["characterSet"] = characterSet;
     c["conformanceMode"] = conformanceMode;
@@ -130,6 +133,7 @@ Error SolutionManifest::Deserialize(fs::path const& _configPath)
     ReadRequired(j, "defines",          defines,          err);
 
     ReadOptional(j, "startProject", startProject);
+    ReadOptional(j, "runtimeLibrary", runtimeLibrary);
 
     if (j.contains("additionalOptions"))
     {
@@ -247,6 +251,9 @@ Error SolutionManifest::ValidateManifest()
     if (Error e = ValidateValues(validCppStandards, cppStandard, "cppStandard"))
         err.details.push_back(e.Format());
     
+    if (Error e = ValidateValues(validRuntimeLibrary, runtimeLibrary, "runtimeLibrary"))
+        err.details.push_back(e.Format());
+
     if (Error e = ValidateValues(validWarningLvl, warningLvl, "warningLevel"))
         err.details.push_back(e.Format());
     

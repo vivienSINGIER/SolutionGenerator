@@ -22,9 +22,7 @@ Error Cmd::DepList(Workspace& _ws, Invocation const& _inv)
     if (!_ws.HasProject(project))
         return Error::Validation("project '" + project + "' does not exist");
     
-    ProjectManifest manifest;
-    if (Error e = _ws.GetProjectManifest(project, manifest))
-        return e;
+    ProjectManifest manifest = *_ws.GetProjectManifest(project);
     
     std::string out = "'" + project + "' Dependency list\n";
     for (auto const& d : manifest.dependencies)

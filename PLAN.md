@@ -118,6 +118,7 @@ commit or resolve in a merge.
   "platform": "x64",
   "toolset": "v143",
   "cppStandard": "20",
+  "runtimeLibrary": "dynamic",
 
   "characterSet": "Unicode",
   "conformanceMode": true,
@@ -146,6 +147,7 @@ commit or resolve in a merge.
 | `platform` | `"x64"` | target platform |
 | `toolset` | `"v143"` | `PlatformToolset` |
 | `cppStandard` | `"20"` | `LanguageStandard` → `stdcpp20`; also `14` `17` `23` `latest` |
+| `runtimeLibrary` | `"dynamic"` | `RuntimeLibrary`: `dynamic` → `/MDd` `/MD`, `static` → `/MTd` `/MT`; must match how the vendor libs were built |
 | `characterSet` | `"Unicode"` | `Unicode` or `MultiByte` |
 | `conformanceMode` | `true` | `/permissive-` — enforce standard C++ |
 | `warningLevel` | `"Level4"` | `TurnOffAllWarnings`, `Level1`..`Level4` |
@@ -174,10 +176,14 @@ Filename = project name = folder name in `src/` and `res/`.
 
   "vendor": {
     "fmt": {
-      "include": ["fmt/include"],
-      "libs": ["fmt.lib"],
-      "libDirs": { "Debug": "fmt/lib/x64/Debug", "Release": "fmt/lib/x64/Release" },
-      "dlls": []
+      "include": ["include"],
+      "libs": [],
+      "libDirs": ["lib/$(Platform)/$(Configuration)"],
+      "dlls": [],
+      "configs": {
+        "Debug":   { "libs": ["fmtd.lib"] },
+        "Release": { "libs": ["fmt.lib"] }
+      }
     }
   },
 
@@ -196,7 +202,7 @@ Filename = project name = folder name in `src/` and `res/`.
 | `defines` | `[]` | preprocessor defines, on top of solution `defines` |
 | `includeDirs` | `[]` | extra include dirs, rel. `src/<Name>/` |
 | `exclude` | `[]` | globs (rel. `src/<Name>/`) removed from source discovery |
-| `vendor` | `{}` | external libs; paths rel. `vendor/`; `dlls` copied next to the exe post-build |
+| `vendor` | `{}` | external libs; paths rel. `vendor/<lib>/`, may hold `$(Platform)` / `$(Configuration)`; `dlls` copied next to the exe post-build; `configs.<Config>` adds `libs` / `libDirs` / `dlls` for one config |
 | `config` | `{}` | per-configuration overrides, deep-merged over the built-in profile |
 
 Flags applied automatically from `kind`:

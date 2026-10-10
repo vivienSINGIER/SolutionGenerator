@@ -6,9 +6,9 @@ namespace
 {
     std::vector<std::pair<std::string, std::string>> bats =
         {
-        {"make.bat", "../Liftoff.exe make"},
-        {"clean.bat", "../Liftoff.exe clean"},
-        {"clear.bat", "../Liftoff.exe clear"},
+        {"make.bat", "\"%~dp0..\\Liftoff.exe\" make -y -v"},
+        {"clean.bat", "\"%~dp0..\\Liftoff.exe\" clean -y -v"},
+        {"clear.bat", "\"%~dp0..\\Liftoff.exe\" clear -y -v"},
     };
     
     std::string validToolsets[] = { "v143" };

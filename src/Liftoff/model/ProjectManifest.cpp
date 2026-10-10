@@ -47,6 +47,19 @@ Error ProjectManifest::Serialize(fs::path const& _configPath)
         c["vendor"][name]["libs"] = v.libs;
         c["vendor"][name]["libDirs"] = v.libDirs;
         c["vendor"][name]["dlls"] = v.dlls;
+
+        for (auto const& configPair : v.configs)
+        {
+            std::string const& config = configPair.first;
+            VendorConfig const& vc = configPair.second;
+
+            if (!vc.libs.empty())
+                c["vendor"][name]["configs"][config]["libs"] = vc.libs;
+            if (!vc.libDirs.empty())
+                c["vendor"][name]["configs"][config]["libDirs"] = vc.libDirs;
+            if (!vc.dlls.empty())
+                c["vendor"][name]["configs"][config]["dlls"] = vc.dlls;
+        }
     }
 
     c["configOverrides"] = js::object();
@@ -118,10 +131,35 @@ Error ProjectManifest::Deserialize(fs::path const& _configPath)
         for (auto& [name, settings] : j["vendor"].items())
         {
             VendorDep v;
-            ReadOptional(settings, "include", v.include);
-            ReadOptional(settings, "libs",    v.libs);
-            ReadOptional(settings, "libDirs", v.libDirs);
-            ReadOptional(settings, "dlls",    v.dlls);
+
+            try
+            {
+                ReadOptional(settings, "include", v.include);
+                ReadOptional(settings, "libs",    v.libs);
+                ReadOptional(settings, "libDirs", v.libDirs);
+                ReadOptional(settings, "dlls",    v.dlls);
+
+                if (settings.contains("configs"))
+                {
+                    for (auto& [configName, configSettings] : settings["configs"].items())
+                    {
+                        if (configName != "Release" && configName != "Debug") {
+                            err.details.push_back("incorrect config name '" + configName + "' in vendor '" + name + "'. must be 'Release' or 'Debug'");
+                        }
+
+                        VendorConfig vc;
+                        ReadOptional(configSettings, "libs",    vc.libs);
+                        ReadOptional(configSettings, "libDirs", vc.libDirs);
+                        ReadOptional(configSettings, "dlls",    vc.dlls);
+
+                        v.configs[configName] = vc;
+                    }
+                }
+            }
+            catch (js::exception const&)
+            {
+                err.details.push_back("vendor '" + name + "' has a field with the wrong type");
+            }
 
             vendor[name] = v;
         }

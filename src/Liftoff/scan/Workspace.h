@@ -18,7 +18,7 @@ public:
     
     std::vector<ProjectManifest>& GetProjects();
     bool HasProject(std::string_view _projectName);
-    Error GetProjectManifest(std::string_view _projectName, ProjectManifest& _out);
+    ProjectManifest* GetProjectManifest(std::string_view _projectName);
 
     DependencyGraph& GetDependencyGraph();
     

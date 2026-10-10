@@ -26,6 +26,7 @@ public:
     std::vector<std::string> platforms;
     std::string toolset;
     std::string cppStandard;
+    std::string runtimeLibrary;
     
     std::string characterSet;
     bool conformanceMode;

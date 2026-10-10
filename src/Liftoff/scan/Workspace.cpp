@@ -85,18 +85,16 @@ bool Workspace::HasProject(std::string_view _projectName)
     return false;
 }
 
-Error Workspace::GetProjectManifest(std::string_view _projectName, ProjectManifest& _out)
+ProjectManifest* Workspace::GetProjectManifest(std::string_view _projectName
+    )
 {
     for (ProjectManifest& project: m_projects)
     {
         if (project.name == _projectName)
         {
-            _out = project;
-            return Error::Ok();
+            return &project;
         }   
     }
-    
-    return Error::Validation("no project of name '" + std::string(_projectName) + "' found");
 }
 
 DependencyGraph& Workspace::GetDependencyGraph()

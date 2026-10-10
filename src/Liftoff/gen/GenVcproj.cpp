@@ -222,7 +222,9 @@ namespace
                                    fs::path const& _root)
     {
         std::vector<std::string> fields;
-        
+
+        bool dynamicRuntime = _s.runtimeLibrary == "dynamic";
+
         fields.push_back( Tag( "Optimization",                  {"Disabled"},           {"Condition=\"'$(Configuration)'=='Debug'\""} ) );
         fields.push_back( Tag( "Optimization",                  {"MaxSpeed"},           {"Condition=\"'$(Configuration)'=='Release'\""} ) );
         fields.push_back( Tag( "InlineFunctionExpansion",       {"Disabled"},           {"Condition=\"'$(Configuration)'=='Debug'\""} ) );
@@ -231,8 +233,8 @@ namespace
         fields.push_back( Tag( "IntrinsicFunctions",            {"true"},               {"Condition=\"'$(Configuration)'=='Release'\""} ) );
         fields.push_back( Tag( "WholeProgramOptimization",      {"false"},              {"Condition=\"'$(Configuration)'=='Debug'\""} ) ); 
         fields.push_back( Tag( "WholeProgramOptimization",      {"true"},               {"Condition=\"'$(Configuration)'=='Release'\""} ) ); 
-        fields.push_back( Tag( "RuntimeLibrary",                {"MultiThreadedDebug"}, {"Condition=\"'$(Configuration)'=='Debug'\""} ) );
-        fields.push_back( Tag( "RuntimeLibrary",                {"MultiThreaded"},      {"Condition=\"'$(Configuration)'=='Release'\""} ) );
+        fields.push_back( Tag( "RuntimeLibrary",                {dynamicRuntime ? "MultiThreadedDebugDLL" : "MultiThreadedDebug"}, {"Condition=\"'$(Configuration)'=='Debug'\""} ) );
+        fields.push_back( Tag( "RuntimeLibrary",                {dynamicRuntime ? "MultiThreadedDLL" : "MultiThreaded"}, {"Condition=\"'$(Configuration)'=='Release'\""} ) );
         fields.push_back( Tag( "BasicRuntimeLibrary",           {"EnableFastChecks"},   {"Condition=\"'$(Configuration)'=='Debug'\""} ) );
         fields.push_back( Tag( "BasicRuntimeLibrary",           {"Default"},            {"Condition=\"'$(Configuration)'=='Release'\""} ) );
         fields.push_back( Tag( "FunctionLevelLinking",          {"false"},              {"Condition=\"'$(Configuration)'=='Debug'\""} ) );
@@ -280,10 +282,10 @@ namespace
     }
     
     std::string ItemDeffLink(Workspace& _w, SolutionManifest const& _s, ProjectManifest const& _p,
-                              ResolvedVendor const& _vendor)
+                              ResolvedVendor const& _vendor, fs::path const& _root)
     {
         std::vector<std::string> fields;
-        
+
         std::string subsystem = "";
         if (_p.kind == "console")
             fields.push_back(Tag("Subsystem", {"Console"}));
@@ -291,22 +293,23 @@ namespace
             fields.push_back(Tag("Subsystem", {"Windows"}));
         
         fields.push_back(Tag("GenerateDebugInformation", {"true"}));
-        fields.push_back(Tag("LinkIncrementAll", {"true"}, {"Condition=\"'$(Configuration)'=='Debug'"}));
-        fields.push_back(Tag("LinkIncrementAll", {"false"}, {"Condition=\"'$(Configuration)'=='Release'"}));
+        fields.push_back(Tag("LinkIncrementAll", {"true"}, {"Condition=\"'$(Configuration)'=='Debug'\""}));
+        fields.push_back(Tag("LinkIncrementAll", {"false"}, {"Condition=\"'$(Configuration)'=='Release'\""}));
         fields.push_back(Tag("OptimizeReferences", {"false"}, {"Condition=\"'$(Configuration)'=='Debug'\""}));
         fields.push_back(Tag("OptimizeReferences", {"true"}, {"Condition=\"'$(Configuration)'=='Release'\""}));
         fields.push_back(Tag("EnableCOMDATFolding", {"false"}, {"Condition=\"'$(Configuration)'=='Debug'\""}));
         fields.push_back(Tag("EnableCOMDATFolding", {"true"}, {"Condition=\"'$(Configuration)'=='Release'\""}));
-        fields.push_back(Tag("LinkTimeCodeGeneration", {"Default"}, {"Condition=\"'$(Configuration)'=='Debug'"}));
-        fields.push_back(Tag("LinkTimeCodeGeneration", {"UseLinkTimeCodeGeneration"}, {"Condition=\"'$(Configuration)'=='Release'"}));
+        fields.push_back(Tag("LinkTimeCodeGeneration", {"Default"}, {"Condition=\"'$(Configuration)'=='Debug'\""}));
+        fields.push_back(Tag("LinkTimeCodeGeneration", {"UseLinkTimeCodeGeneration"}, {"Condition=\"'$(Configuration)'=='Release'\""}));
         
         std::string addLibDirV = "";
         std::string addDepV = "";
         for (auto const& d : _p.dependencies)
         {
-            ProjectManifest depM;
-            if (Error e = _w.GetProjectManifest(d, depM))
+            if (_w.HasProject(d) == false)
                 continue;
+            
+            ProjectManifest depM = *_w.GetProjectManifest(d);
             
             if (depM.kind == "console" || depM.kind == "window")
                 continue;
@@ -315,23 +318,45 @@ namespace
             if (depM.kind == "dynamiclib")
                 ext = ".dll";
             
-            addLibDirV += "$(SolutionDir)" + _p.name + "\\$(Platform)\\$(Configuration);";
+            addLibDirV += "$(SolutionDir)" + depM.name + "\\$(Platform)\\$(Configuration);";
             addDepV += depM.name + ext + ";";
         }
         
-        for (auto const& c : _vendor.libDirs)
-            addLibDirV += AddRootRelative(c.second.string()) + ";";
-        addLibDirV += "%(AdditionalLibraryDirectories)";
-        
-        for (auto const& c : _vendor.libs)
-            addDepV += AddRootRelative(c) + ";";
-        addDepV += "%(AdditionalDependencies)";
-        
-        fields.push_back(Tag("AdditionalLibraryDirectories", {addLibDirV}, { "Condition=\"'$(Configuration)'=='Debug'\""}));
-        fields.push_back(Tag("AdditionalLibraryDirectories", {addLibDirV}, { "Condition=\"'$(Configuration)'=='Release'\""}));
+        for (auto const& dir : _vendor.libDirs)
+            addLibDirV += AddRootRelative(fs::relative(dir, _root)) + ";";
+        for (auto const& lib : _vendor.libs)
+            addDepV += lib + ";";
 
-        fields.push_back(Tag("AdditionalDependencies", {addDepV}, { "Condition=\"'$(Configuration)'=='Debug'\""}));
-        fields.push_back(Tag("AdditionalDependencies", {addDepV}, { "Condition=\"'$(Configuration)'=='Release'\""}));
+        std::vector<std::string> libDirs;
+        std::vector<std::string> deps;
+
+        for (auto const& c : _s.configs)
+        {
+            std::string condition = "Condition=\"'$(Configuration)'=='" + c + "'\"";
+
+            std::string configLibDirV = addLibDirV;
+            std::string configDepV = addDepV;
+
+            auto it = _vendor.configs.find(c);
+            if (it != _vendor.configs.end())
+            {
+                for (auto const& dir : it->second.libDirs)
+                    configLibDirV += AddRootRelative(fs::relative(dir, _root)) + ";";
+                for (auto const& lib : it->second.libs)
+                    configDepV += lib + ";";
+            }
+
+            configLibDirV += "%(AdditionalLibraryDirectories)";
+            configDepV += "%(AdditionalDependencies)";
+
+            libDirs.push_back(Tag("AdditionalLibraryDirectories", {configLibDirV}, {condition}));
+            deps.push_back(Tag("AdditionalDependencies", {configDepV}, {condition}));
+        }
+
+        for (auto const& l : libDirs)
+            fields.push_back(l);
+        for (auto const& d : deps)
+            fields.push_back(d);
 
         if (!_s.additionalOptions.linker.empty())
             fields.push_back(Tag("AdditionalOptions", {GetAdditionalOptions(_s.additionalOptions.linker)}));
@@ -339,24 +364,45 @@ namespace
         return Tag("Link", fields);
     }
     
-    std::string ItemDeffPostBuild(ResolvedVendor const& _vendor)
+    void AppendDllCopy(std::string& _cmd, fs::path const& _dll, fs::path const& _root)
+    {
+        if (!_cmd.empty())
+            _cmd += "&#10;";
+        _cmd += "xcopy /y /d /q \"" + AddRootRelative(fs::relative(_dll, _root)) + "\" \"$(OutDir)\"";
+    }
+
+    std::string ItemDeffPostBuild(SolutionManifest const& _s, ResolvedVendor const& _vendor)
     {
         fs::path root;
         if (Error e = Cmd::GetRootPath(root))
             return Tag("PostBuildEvent", {});
-        
-        if (_vendor.dlls.empty())
-            return Tag("PostBuildEvent", {});
-        
-        std::string cmd;
+
+        std::string commonCmd;
         for (auto const& d : _vendor.dlls)
+            AppendDllCopy(commonCmd, d, root);
+
+        std::vector<std::string> fields;
+        for (auto const& c : _s.configs)
         {
-            if (!cmd.empty())
-                cmd += "&#10;";
-            cmd += "xcopy /y /d /q \"" + AddRootRelative(fs::relative(d, root)) + "\" \"$(OutDir)\"";
+            std::string cmd = commonCmd;
+
+            auto it = _vendor.configs.find(c);
+            if (it != _vendor.configs.end())
+                for (auto const& d : it->second.dlls)
+                    AppendDllCopy(cmd, d, root);
+
+            if (cmd.empty())
+                continue;
+
+            fields.push_back(Tag("Command", {cmd}, {"Condition=\"'$(Configuration)'=='" + c + "'\""}));
         }
-        
-        return Tag("PostBuildEvent",  { Tag( "Command", {cmd } ), Tag(  "Message", {"Copying vendor DLLs"} ) } );
+
+        if (fields.empty())
+            return Tag("PostBuildEvent", {});
+
+        fields.push_back(Tag("Message", {"Copying vendor DLLs"}));
+
+        return Tag("PostBuildEvent", fields);
     }
     
     std::string ItemGrpClInclude(std::vector<fs::path> const& _includes)
@@ -440,8 +486,8 @@ Error Gen::GenVcProj(Workspace& _workspace, SolutionManifest const& _solution, P
     body += OutDirs();
     body += Vcpkg(_project);
     body += Tag("ItemDefinitionGroup", { ItemDeffClCompile(_solution, _project, vendor, exports, root),
-                                          ItemDeffLink(_workspace, _solution, _project, vendor),
-                                          ItemDeffPostBuild(vendor)});
+                                          ItemDeffLink(_workspace, _solution, _project, vendor, root),
+                                          ItemDeffPostBuild(_solution, vendor)});
     body += ItemGrpClInclude(dis.clIncludeFiles);
     body += ItemGrpClCompile(dis.clCompileFiles);
     body += ItemGrpNone(dis.noneFiles, dis.resFiles);

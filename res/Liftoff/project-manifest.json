@@ -12,10 +12,14 @@
 
   "vendor": {
     "fmt": {
-      "include": ["fmt/include"],
-      "libs": ["fmt.lib"],
-      "libDirs": { "Debug": "fmt/lib/x64/Debug", "Release": "fmt/lib/x64/Release" },
-      "dlls": []
+      "include": ["include"],
+      "libs": [],
+      "libDirs": ["lib/$(Platform)/$(Configuration)"],
+      "dlls": [],
+      "configs": {
+        "Debug":   { "libs": ["fmtd.lib"] },
+        "Release": { "libs": ["fmt.lib"] }
+      }
     }
   },
 

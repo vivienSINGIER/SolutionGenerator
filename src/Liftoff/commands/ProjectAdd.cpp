@@ -1,4 +1,4 @@
-﻿#include "Command.h"
+#include "Command.h"
 
 namespace
 {
@@ -14,7 +14,7 @@ namespace
     
     std::vector<std::pair<std::string, std::string>> bats =
     {
-        {"-make.bat", "../Liftoff.exe make --only "},
+        {"-make.bat", "\"%~dp0..\\Liftoff.exe\" make -y -v --only "},
     };
     
     Error CreateBats(fs::path const& _path, bool _isV)

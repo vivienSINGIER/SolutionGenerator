@@ -206,19 +206,29 @@ already shows the whole graph; this narrows to one project.
 ### `solgen vendor add <project> <lib>` / `solgen vendor remove <project> <lib>`
 
 ```
-solgen vendor add <project> <lib> --include <path>... --lib-dir <path>...
-                  --libs <a,b,...> [--dlls <x,y,...>]
+solgen vendor add <project> <lib> [--include <path>...] [--lib-dir <path>...]
+                  [--libs <a,b,...>] [--dlls <x,y,...>]
+                  [--configuration <config>]
 solgen vendor remove <project> <lib>
 ```
 
 Add / remove a key in `<project>`'s `vendor` block. Paths are relative to
-`vendor/` and are **not** required to exist at edit time — `make` warns if a
+`vendor/<lib>/` and are **not** required to exist at edit time — `make` warns if a
 declared path is still missing when it runs.
 
+`vendor add` **merges**: it creates the entry if `<lib>` is new, otherwise appends
+to it (values already present are skipped). At least one option must be given.
+
 `--include` and `--lib-dir` are **repeatable** — each occurrence appends one path.
-`--lib-dir` accepts a bare path (used for all configs) or a `Debug=<path>` /
-`Release=<path>` prefix; the prefix is a value format the `vendor add` handler
-parses, not the parser (which only collects the raw tokens).
+
+Without `--configuration`, `--lib-dir` / `--libs` / `--dlls` apply to every config.
+With it, they are added to that config only (on top of the common ones) — for libs
+whose file names differ per config, e.g. `sfml-graphics-d.lib` vs `sfml-graphics.lib`.
+`--include` is always common and can't be combined with `--configuration`. The
+option isn't named `--config` because that is the global manifest-path flag.
+
+Paths may hold the MSBuild macros `$(Platform)` / `$(Configuration)`
+(e.g. `lib/$(Platform)/$(Configuration)`); such paths are not existence-checked.
 
 ### `solgen vendor list <project>`
 
@@ -227,7 +237,7 @@ solgen vendor list <project>
 ```
 
 Lists `<project>`'s `vendor` entries: lib name, then its `include` / `lib-dir` /
-`libs` / `dlls` values. Read-only.
+`libs` / `dlls` values, then the same per config. Read-only.
 
 ### `solgen set <key> <value>`
 
@@ -235,7 +245,7 @@ Lists `<project>`'s `vendor` entries: lib name, then its `include` / `lib-dir` /
 solgen set <key> <value>
 ```
 
-Sets a scalar field in `solution.json` (`toolset`, `cppStandard`, `warningLevel`,
+Sets a scalar field in `solution.json` (`toolset`, `cppStandard`, `runtimeLibrary`, `warningLevel`,
 `warningsAsErrors`, `characterSet`, `conformanceMode`, …). Same validate-then-write
 rule as `project set`.
 

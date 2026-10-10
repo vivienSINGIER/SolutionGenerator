@@ -38,6 +38,10 @@ namespace Cmd
     Error Make(Workspace& _ws, Invocation const& _inv);
     Error Clean(Workspace& _ws, Invocation const& _inv);
     Error Clear(Invocation const& _inv);
+    
+    Error VendorAdd(Workspace& _ws, Invocation const& _inv);
+    Error VendorRemove(Workspace& _ws, Invocation const& _inv);
+    Error VendorList(Workspace& _ws, Invocation const& _inv);
 }
 
 #endif

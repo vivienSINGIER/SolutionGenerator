@@ -65,8 +65,7 @@ Error Cmd::Make(Workspace& _ws, Invocation const& _inv)
             if (_ws.HasProject(p) == false)
                 return Error::Validation("couldn't find project '" + p + "' in solution manifest");
             
-            ProjectManifest pM;
-            _ws.GetProjectManifest(p, pM);
+            ProjectManifest pM = *_ws.GetProjectManifest(p);
             
             fs::path vcProjPath = slnPath.parent_path() / p / (p + ".vcxproj");
             fs::path vcFilterPath = slnPath.parent_path() / p / (p + ".vcxproj.filters");

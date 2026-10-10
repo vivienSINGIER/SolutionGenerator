@@ -21,12 +21,21 @@ struct ProjectDesc
     std::string group;
 };
 
+struct VendorConfig
+{
+    std::vector<std::string> libs;
+    std::vector<std::string> libDirs;
+    std::vector<std::string> dlls;
+};
+
+// libs / libDirs / dlls apply to every config; configs adds to them for one config.
 struct VendorDep
 {
     std::vector<std::string> include;
     std::vector<std::string> libs;
-    std::map<std::string, std::string> libDirs;
+    std::vector<std::string> libDirs;
     std::vector<std::string> dlls;
+    std::map<std::string, VendorConfig> configs;
 };
 
 struct ConfigOverride
